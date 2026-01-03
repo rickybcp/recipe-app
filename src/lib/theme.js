@@ -1,0 +1,138 @@
+export const theme = {
+    colors: {
+      primary: '#2D5A3D',
+      primaryLight: '#4A7C5B',
+      primaryDark: '#1E3D2A',
+      secondary: '#D4775C',
+      secondaryLight: '#E8A08E',
+      secondaryDark: '#B85A42',
+      accent: '#E5B854',
+      accentLight: '#F0D080',
+      background: '#FAF7F2',
+      backgroundAlt: '#F2EDE5',
+      surface: '#FFFFFF',
+      surfaceHover: '#F8F5EF',
+      text: '#2C2C2C',
+      textSecondary: '#6B6B6B',
+      textMuted: '#999999',
+      textInverse: '#FFFFFF',
+      border: '#E5DDD0',
+      borderLight: '#F0EBE3',
+      success: '#4A9D5B',
+      error: '#D64545',
+      warning: '#E5B854',
+      seasons: {
+        winter: '#6BA3C9',
+        spring: '#8BC98B',
+        summer: '#F0C754',
+        autumn: '#D4775C',
+        all_year: '#9B8EC9'
+      },
+      difficulty: {
+        easy: '#4A9D5B',
+        medium: '#E5B854',
+        hard: '#D64545'
+      }
+    },
+    fonts: {
+      body: "'Nunito', -apple-system, BlinkMacSystemFont, sans-serif",
+      heading: "'Playfair Display', Georgia, serif",
+    },
+    spacing: {
+      xs: '4px',
+      sm: '8px',
+      md: '16px',
+      lg: '24px',
+      xl: '32px',
+      xxl: '48px',
+    },
+    borderRadius: {
+      sm: '6px',
+      md: '12px',
+      lg: '16px',
+      xl: '24px',
+      full: '9999px',
+    },
+    shadows: {
+      sm: '0 1px 3px rgba(0,0,0,0.08)',
+      md: '0 4px 12px rgba(0,0,0,0.1)',
+      lg: '0 8px 24px rgba(0,0,0,0.12)',
+      focus: '0 0 0 3px rgba(45, 90, 61, 0.2)',
+    },
+    transitions: {
+      fast: '0.15s ease',
+      normal: '0.25s ease',
+      slow: '0.4s ease',
+    }
+  }
+  
+  export const styles = {
+    buttonPrimary: {
+      backgroundColor: theme.colors.primary,
+      color: theme.colors.textInverse,
+      padding: '12px 24px',
+      borderRadius: theme.borderRadius.md,
+      fontSize: '15px',
+      fontWeight: '600',
+      transition: theme.transitions.fast,
+      border: 'none',
+      cursor: 'pointer',
+    },
+    buttonSecondary: {
+      backgroundColor: 'transparent',
+      color: theme.colors.primary,
+      padding: '12px 24px',
+      borderRadius: theme.borderRadius.md,
+      fontSize: '15px',
+      fontWeight: '600',
+      transition: theme.transitions.fast,
+      border: `2px solid ${theme.colors.primary}`,
+      cursor: 'pointer',
+    },
+    buttonGhost: {
+      backgroundColor: 'transparent',
+      color: theme.colors.textSecondary,
+      padding: '8px 16px',
+      borderRadius: theme.borderRadius.sm,
+      fontSize: '14px',
+      fontWeight: '500',
+      transition: theme.transitions.fast,
+      border: 'none',
+      cursor: 'pointer',
+    },
+    input: {
+      width: '100%',
+      padding: '12px 16px',
+      fontSize: '15px',
+      border: `1.5px solid ${theme.colors.border}`,
+      borderRadius: theme.borderRadius.md,
+      backgroundColor: theme.colors.surface,
+      color: theme.colors.text,
+      transition: theme.transitions.fast,
+    },
+    modalOverlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '16px',
+      zIndex: 1000,
+    },
+    modalContent: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.borderRadius.xl,
+      width: '100%',
+      maxWidth: '500px',
+      maxHeight: '90vh',
+      overflow: 'auto',
+      boxShadow: theme.shadows.lg,
+    },
+  }
+  
+  export const getSeasonColor = (season) => theme.colors.seasons[season] || theme.colors.textMuted
+  export const getDifficultyColor = (difficulty) => theme.colors.difficulty[difficulty] || theme.colors.textMuted
