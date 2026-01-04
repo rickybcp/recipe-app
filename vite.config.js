@@ -5,12 +5,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    host: true,
-    hmr: {
-      overlay: false
-    }
+    host: true
   },
-  optimizeDeps: {
-    exclude: ['@supabase/supabase-js']
+  build: {
+    outDir: 'dist',
+    sourcemap: false
   }
 })

@@ -1,397 +1,431 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useApp } from '../contexts/AppContext'
-import { theme } from '../lib/theme'
-import { 
-  format, 
-  startOfWeek, 
-  endOfWeek, 
-  startOfMonth, 
+import {
+  format,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
   endOfMonth,
   eachDayOfInterval,
   addWeeks,
   subWeeks,
   addMonths,
   subMonths,
+  isSameDay,
   isSameMonth,
   isToday
 } from 'date-fns'
 import { fr, enUS } from 'date-fns/locale'
+import { colors, fonts, fontSizes, spacing, borderRadius, shadows } from '../lib/theme'
 import MealPicker from './MealPicker'
 
 export default function CalendarPage() {
-  const { t, language, mealPlans, loadMealPlansForRange, deleteMealPlan } = useApp()
-  const [view, setView] = useState('week')
+  const { t, language, tags, mealPlans, loadMealPlans, deleteMealPlan } = useApp()
+
+  const [viewMode, setViewMode] = useState('week') // 'week' or 'month'
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(null)
   const [showMealPicker, setShowMealPicker] = useState(false)
-  
+
   const locale = language === 'fr' ? fr : enUS
-  
-  const dateRange = useMemo(() => {
-    if (view === 'week') {
+
+  // Calculate date range based on view mode
+  const getDateRange = () => {
+    if (viewMode === 'week') {
       return {
         start: startOfWeek(currentDate, { weekStartsOn: 1 }),
         end: endOfWeek(currentDate, { weekStartsOn: 1 })
       }
     } else {
-      const monthStart = startOfMonth(currentDate)
-      const monthEnd = endOfMonth(currentDate)
       return {
-        start: startOfWeek(monthStart, { weekStartsOn: 1 }),
-        end: endOfWeek(monthEnd, { weekStartsOn: 1 })
+        start: startOfMonth(currentDate),
+        end: endOfMonth(currentDate)
       }
     }
-  }, [currentDate, view])
-  
-  const days = useMemo(() => {
-    return eachDayOfInterval({ start: dateRange.start, end: dateRange.end })
-  }, [dateRange])
-  
+  }
+
+  const { start, end } = getDateRange()
+  const days = eachDayOfInterval({ start, end })
+
+  // Load meal plans when date range changes
   useEffect(() => {
-    const start = format(dateRange.start, 'yyyy-MM-dd')
-    const end = format(dateRange.end, 'yyyy-MM-dd')
-    loadMealPlansForRange(start, end)
-  }, [dateRange])
-  
-  const getMealsForDate = (date) => {
-    const dateStr = format(date, 'yyyy-MM-dd')
-    return mealPlans.filter(mp => mp.planned_date === dateStr)
+    const startStr = format(start, 'yyyy-MM-dd')
+    const endStr = format(end, 'yyyy-MM-dd')
+    loadMealPlans(startStr, endStr)
+  }, [start, end, loadMealPlans])
+
+  // Navigation
+  const goToPrevious = () => {
+    if (viewMode === 'week') {
+      setCurrentDate(subWeeks(currentDate, 1))
+    } else {
+      setCurrentDate(subMonths(currentDate, 1))
+    }
   }
-  
-  const goToToday = () => setCurrentDate(new Date())
-  
-  const goToPrev = () => {
-    setCurrentDate(prev => view === 'week' ? subWeeks(prev, 1) : subMonths(prev, 1))
-  }
-  
+
   const goToNext = () => {
-    setCurrentDate(prev => view === 'week' ? addWeeks(prev, 1) : addMonths(prev, 1))
+    if (viewMode === 'week') {
+      setCurrentDate(addWeeks(currentDate, 1))
+    } else {
+      setCurrentDate(addMonths(currentDate, 1))
+    }
   }
-  
-  const handleDayClick = (date) => {
-    setSelectedDate(date)
+
+  const goToToday = () => {
+    setCurrentDate(new Date())
+  }
+
+  // Get meals for a specific day
+  const getMealsForDay = (day) => {
+    const dayStr = format(day, 'yyyy-MM-dd')
+    return mealPlans.filter(mp => mp.planned_date === dayStr)
+  }
+
+  // Get tags for a recipe
+  const getRecipeTags = (recipe) => {
+    if (!recipe) return []
+    return recipe.recipe_tags
+      ?.map(rt => tags.find(tag => tag.id === rt.tag_id))
+      .filter(Boolean) || []
+  }
+
+  // Handle day click
+  const handleDayClick = (day) => {
+    setSelectedDate(day)
     setShowMealPicker(true)
   }
-  
-  const handleRemoveMeal = async (mealId, e) => {
+
+  // Handle meal delete
+  const handleDeleteMeal = async (e, mealPlanId) => {
     e.stopPropagation()
-    await deleteMealPlan(mealId)
+    try {
+      await deleteMealPlan(mealPlanId)
+    } catch (error) {
+      console.error('Failed to delete meal:', error)
+    }
   }
-  
-  const getRecipeIcons = (recipe) => {
-    if (!recipe) return ''
-    const icons = recipe.tags?.map(t => t?.icon).filter(Boolean) || []
-    return icons.join(' ')
+
+  // Close meal picker
+  const handleCloseMealPicker = () => {
+    setShowMealPicker(false)
+    setSelectedDate(null)
   }
-  
+
+  // Format header title
+  const headerTitle = viewMode === 'week'
+    ? `${format(start, 'd MMM', { locale })} - ${format(end, 'd MMM yyyy', { locale })}`
+    : format(currentDate, 'MMMM yyyy', { locale })
+
   return (
-    <div style={calStyles.container}>
-      <div style={calStyles.header}>
-        <div style={calStyles.headerTop}>
-          <div style={calStyles.viewToggle}>
-            <button
-              onClick={() => setView('week')}
-              style={{
-                ...calStyles.toggleButton,
-                ...(view === 'week' ? calStyles.toggleButtonActive : {}),
-              }}
-            >
-              {t('weekView')}
-            </button>
-            <button
-              onClick={() => setView('month')}
-              style={{
-                ...calStyles.toggleButton,
-                ...(view === 'month' ? calStyles.toggleButtonActive : {}),
-              }}
-            >
-              {t('monthView')}
-            </button>
-          </div>
-          
-          <button onClick={goToToday} style={calStyles.todayButton}>
-            {t('today')}
+    <div style={styles.container}>
+      {/* Header */}
+      <header style={styles.header}>
+        <h1 style={styles.title}>{t('calendar.title')}</h1>
+      </header>
+
+      {/* View mode toggle */}
+      <div style={styles.viewToggle}>
+        <button
+          onClick={() => setViewMode('week')}
+          style={{
+            ...styles.viewButton,
+            backgroundColor: viewMode === 'week' ? colors.forest : colors.warmGray,
+            color: viewMode === 'week' ? colors.white : colors.textPrimary
+          }}
+        >
+          {t('calendar.week')}
+        </button>
+        <button
+          onClick={() => setViewMode('month')}
+          style={{
+            ...styles.viewButton,
+            backgroundColor: viewMode === 'month' ? colors.forest : colors.warmGray,
+            color: viewMode === 'month' ? colors.white : colors.textPrimary
+          }}
+        >
+          {t('calendar.month')}
+        </button>
+      </div>
+
+      {/* Navigation */}
+      <div style={styles.navigation}>
+        <button onClick={goToPrevious} style={styles.navButton}>←</button>
+        <div style={styles.navCenter}>
+          <span style={styles.navTitle}>{headerTitle}</span>
+          <button onClick={goToToday} style={styles.todayButton}>
+            {t('calendar.today')}
           </button>
         </div>
-        
-        <div style={calStyles.navigation}>
-          <button onClick={goToPrev} style={calStyles.navButton}>‹</button>
-          <span style={calStyles.currentPeriod}>
-            {view === 'week' 
-              ? `${format(dateRange.start, 'd MMM', { locale })} - ${format(dateRange.end, 'd MMM yyyy', { locale })}`
-              : format(currentDate, 'MMMM yyyy', { locale })
-            }
-          </span>
-          <button onClick={goToNext} style={calStyles.navButton}>›</button>
-        </div>
+        <button onClick={goToNext} style={styles.navButton}>→</button>
       </div>
-      
-      <div style={calStyles.calendarWrapper}>
-        <div style={calStyles.weekdayHeader}>
-          {t('weekdays.short').map((day, i) => (
-            <div key={i} style={calStyles.weekdayCell}>{day}</div>
-          ))}
-        </div>
-        
-        <div style={{
-          ...calStyles.daysGrid,
-          gridTemplateRows: view === 'week' ? '1fr' : `repeat(${Math.ceil(days.length / 7)}, 1fr)`,
-        }}>
-          {days.map((day, index) => {
-            const meals = getMealsForDate(day)
-            const isCurrentMonth = isSameMonth(day, currentDate)
-            const isDayToday = isToday(day)
-            
-            return (
-              <button
-                key={index}
-                onClick={() => handleDayClick(day)}
-                style={{
-                  ...calStyles.dayCell,
-                  ...(view === 'month' && !isCurrentMonth ? calStyles.dayCellOtherMonth : {}),
-                  ...(isDayToday ? calStyles.dayCellToday : {}),
-                }}
-              >
-                <span style={{
-                  ...calStyles.dayNumber,
-                  ...(isDayToday ? calStyles.dayNumberToday : {}),
-                }}>
-                  {format(day, 'd')}
-                </span>
-                
-                <div style={calStyles.mealsContainer}>
-                  {meals.slice(0, view === 'week' ? 5 : 2).map(meal => (
-                    <div key={meal.id} style={calStyles.mealItem}>
-                      <span style={calStyles.mealName}>
-                        {meal.recipe?.name || 'Recipe'}
-                      </span>
-                      {view === 'week' && (
-                        <span style={calStyles.mealIcons}>
-                          {getRecipeIcons(meal.recipe)}
+
+      {/* Calendar grid */}
+      <div style={{
+        ...styles.grid,
+        gridTemplateColumns: viewMode === 'week' ? 'repeat(7, 1fr)' : 'repeat(7, 1fr)'
+      }}>
+        {/* Day headers */}
+        {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((day, index) => (
+          <div key={index} style={styles.dayHeader}>
+            {language === 'en' 
+              ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'][index]
+              : day
+            }
+          </div>
+        ))}
+
+        {/* Days */}
+        {days.map(day => {
+          const meals = getMealsForDay(day)
+          const isCurrentMonth = isSameMonth(day, currentDate)
+          const isDayToday = isToday(day)
+
+          return (
+            <div
+              key={day.toISOString()}
+              onClick={() => handleDayClick(day)}
+              style={{
+                ...styles.dayCell,
+                ...(viewMode === 'month' && !isCurrentMonth ? styles.dayCellOutside : {}),
+                ...(isDayToday ? styles.dayCellToday : {})
+              }}
+            >
+              <div style={styles.dayNumber}>
+                {format(day, 'd')}
+              </div>
+              <div style={styles.meals}>
+                {meals.map(meal => {
+                  const recipeTags = getRecipeTags(meal.recipe)
+                  return (
+                    <div key={meal.id} style={styles.mealItem}>
+                      <div style={styles.mealContent}>
+                        <span style={styles.mealName}>
+                          {meal.recipe?.name || '?'}
                         </span>
-                      )}
+                        {recipeTags.length > 0 && (
+                          <span style={styles.mealTags}>
+                            {recipeTags.slice(0, 2).map(tag => tag.icon).join('')}
+                          </span>
+                        )}
+                      </div>
                       <button
-                        onClick={(e) => handleRemoveMeal(meal.id, e)}
-                        style={calStyles.removeMealButton}
+                        onClick={(e) => handleDeleteMeal(e, meal.id)}
+                        style={styles.mealDelete}
                       >
                         ✕
                       </button>
                     </div>
-                  ))}
-                  {meals.length > (view === 'week' ? 5 : 2) && (
-                    <span style={calStyles.moreCount}>
-                      +{meals.length - (view === 'week' ? 5 : 2)}
-                    </span>
-                  )}
-                </div>
-                
-                {meals.length === 0 && (
-                  <span style={calStyles.addHint}>+</span>
-                )}
-              </button>
-            )
-          })}
-        </div>
+                  )
+                })}
+              </div>
+              <div style={styles.addMeal}>+</div>
+            </div>
+          )
+        })}
       </div>
-      
+
+      {/* Meal picker modal */}
       {showMealPicker && selectedDate && (
         <MealPicker
           date={selectedDate}
-          onClose={() => {
-            setShowMealPicker(false)
-            setSelectedDate(null)
-          }}
+          onClose={handleCloseMealPicker}
         />
       )}
     </div>
   )
 }
 
-const calStyles = {
+// ============================================
+// STYLES
+// ============================================
+
+const styles = {
   container: {
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100%',
-    backgroundColor: theme.colors.background,
+    padding: spacing.md,
+    paddingBottom: spacing.xl
   },
+
   header: {
-    backgroundColor: theme.colors.surface,
-    padding: '12px 16px',
-    borderBottom: `1px solid ${theme.colors.borderLight}`,
+    marginBottom: spacing.md
   },
-  headerTop: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '12px',
+
+  title: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes['2xl'],
+    color: colors.forest,
+    margin: 0
   },
+
   viewToggle: {
     display: 'flex',
-    backgroundColor: theme.colors.backgroundAlt,
-    borderRadius: theme.borderRadius.md,
-    padding: '3px',
+    gap: spacing.xs,
+    marginBottom: spacing.md
   },
-  toggleButton: {
-    padding: '8px 16px',
-    fontSize: '13px',
-    fontWeight: '500',
-    color: theme.colors.textSecondary,
-    backgroundColor: 'transparent',
+
+  viewButton: {
+    flex: 1,
+    padding: spacing.sm,
     border: 'none',
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: borderRadius.md,
+    fontFamily: fonts.body,
+    fontSize: fontSizes.sm,
+    fontWeight: 600,
     cursor: 'pointer',
-    transition: theme.transitions.fast,
+    transition: 'all 0.2s ease'
   },
-  toggleButtonActive: {
-    backgroundColor: theme.colors.surface,
-    color: theme.colors.primary,
-    boxShadow: theme.shadows.sm,
-  },
-  todayButton: {
-    padding: '8px 14px',
-    fontSize: '13px',
-    fontWeight: '600',
-    color: theme.colors.primary,
-    backgroundColor: 'transparent',
-    border: `1.5px solid ${theme.colors.primary}`,
-    borderRadius: theme.borderRadius.md,
-    cursor: 'pointer',
-  },
+
   navigation: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: '16px',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md
   },
+
   navButton: {
-    width: '36px',
-    height: '36px',
-    borderRadius: '50%',
-    backgroundColor: theme.colors.backgroundAlt,
-    border: 'none',
-    fontSize: '20px',
-    color: theme.colors.text,
-    cursor: 'pointer',
+    width: '40px',
+    height: '40px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  currentPeriod: {
-    fontSize: '16px',
-    fontWeight: '600',
-    color: theme.colors.text,
-    minWidth: '200px',
-    textAlign: 'center',
-    textTransform: 'capitalize',
-  },
-  calendarWrapper: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden',
-    padding: '8px',
-  },
-  weekdayHeader: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(7, 1fr)',
-    gap: '4px',
-    marginBottom: '4px',
-  },
-  weekdayCell: {
-    textAlign: 'center',
-    fontSize: '12px',
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
-    padding: '8px 0',
-    textTransform: 'uppercase',
-  },
-  daysGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(7, 1fr)',
-    gap: '4px',
-    flex: 1,
-  },
-  dayCell: {
-    display: 'flex',
-    flexDirection: 'column',
-    padding: '6px',
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    border: `1px solid ${theme.colors.borderLight}`,
+    border: `1px solid ${colors.warmGray}`,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.white,
+    fontSize: fontSizes.lg,
     cursor: 'pointer',
-    textAlign: 'left',
-    overflow: 'hidden',
-    transition: theme.transitions.fast,
-    minHeight: '60px',
+    color: colors.textPrimary
   },
-  dayCellOtherMonth: {
-    opacity: 0.4,
-  },
-  dayCellToday: {
-    borderColor: theme.colors.primary,
-    borderWidth: '2px',
-  },
-  dayNumber: {
-    fontSize: '13px',
-    fontWeight: '600',
-    color: theme.colors.text,
-    marginBottom: '4px',
-  },
-  dayNumberToday: {
-    color: theme.colors.primary,
-  },
-  mealsContainer: {
-    flex: 1,
+
+  navCenter: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '3px',
-    overflow: 'hidden',
+    alignItems: 'center',
+    gap: '4px'
   },
+
+  navTitle: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.md,
+    color: colors.textPrimary,
+    textTransform: 'capitalize'
+  },
+
+  todayButton: {
+    padding: `2px ${spacing.sm}`,
+    backgroundColor: colors.warmGray,
+    border: 'none',
+    borderRadius: borderRadius.full,
+    fontSize: fontSizes.xs,
+    color: colors.textSecondary,
+    cursor: 'pointer',
+    fontFamily: fonts.body
+  },
+
+  grid: {
+    display: 'grid',
+    gap: '1px',
+    backgroundColor: colors.warmGray,
+    borderRadius: borderRadius.md,
+    overflow: 'hidden'
+  },
+
+  dayHeader: {
+    backgroundColor: colors.forest,
+    color: colors.white,
+    padding: spacing.sm,
+    textAlign: 'center',
+    fontSize: fontSizes.xs,
+    fontWeight: 600
+  },
+
+  dayCell: {
+    backgroundColor: colors.white,
+    minHeight: '100px',
+    padding: spacing.xs,
+    cursor: 'pointer',
+    position: 'relative',
+    transition: 'background-color 0.2s ease'
+  },
+
+  dayCellOutside: {
+    backgroundColor: colors.cream,
+    opacity: 0.6
+  },
+
+  dayCellToday: {
+    backgroundColor: colors.successLight
+  },
+
+  dayNumber: {
+    fontSize: fontSizes.sm,
+    fontWeight: 600,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs
+  },
+
+  meals: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px'
+  },
+
   mealItem: {
     display: 'flex',
     alignItems: 'center',
-    gap: '4px',
-    padding: '4px 6px',
-    backgroundColor: theme.colors.primaryLight,
-    borderRadius: theme.borderRadius.sm,
-    fontSize: '11px',
+    justifyContent: 'space-between',
+    backgroundColor: colors.forest + '15',
+    borderRadius: borderRadius.sm,
+    padding: '2px 4px',
+    fontSize: fontSizes.xs
   },
+
+  mealContent: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    overflow: 'hidden',
+    flex: 1
+  },
+
   mealName: {
-    flex: 1,
-    color: '#fff',
-    fontWeight: '500',
+    color: colors.forest,
+    fontWeight: 500,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
+    whiteSpace: 'nowrap'
   },
-  mealIcons: {
+
+  mealTags: {
     fontSize: '10px',
-    flexShrink: 0,
+    flexShrink: 0
   },
-  removeMealButton: {
+
+  mealDelete: {
     width: '16px',
     height: '16px',
-    borderRadius: '50%',
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    border: 'none',
-    color: '#fff',
-    fontSize: '10px',
-    cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
-    opacity: 0.7,
-  },
-  moreCount: {
+    border: 'none',
+    backgroundColor: 'transparent',
+    color: colors.textMuted,
     fontSize: '10px',
-    color: theme.colors.textMuted,
-    textAlign: 'center',
+    cursor: 'pointer',
+    borderRadius: borderRadius.full,
+    flexShrink: 0
   },
-  addHint: {
-    fontSize: '18px',
-    color: theme.colors.borderLight,
-    textAlign: 'center',
-    marginTop: 'auto',
-  },
+
+  addMeal: {
+    position: 'absolute',
+    bottom: '4px',
+    right: '4px',
+    width: '20px',
+    height: '20px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.warmGray,
+    borderRadius: borderRadius.full,
+    fontSize: fontSizes.sm,
+    color: colors.textMuted
+  }
 }

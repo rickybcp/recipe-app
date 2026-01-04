@@ -1,61 +1,26 @@
 # 🍳 Mes Recettes
 
-Application mobile-first de gestion de recettes pour les familles. Partagez vos recettes avec votre foyer et planifiez vos repas facilement.
+Application de gestion de recettes personnelles.
 
-## ✨ Fonctionnalités
-
-- **Gestion des recettes** - Ajoutez, modifiez et supprimez vos recettes
-- **Filtres avancés** - Filtrez par saison, tags, cuisine, féculent, difficulté
-- **Calendrier de repas** - Planifiez vos repas avec vue semaine/mois
-- **Partage en foyer** - Invitez les membres de votre famille par email
-- **Tags personnalisables** - Créez vos propres tags (végétarien, rapide, etc.)
-- **Féculents personnalisables** - Gérez votre liste de féculents
-- **Interface bilingue** - Français et anglais
-
-## 🛠️ Stack technique
-
-- **Frontend** : React 18 + Vite
-- **Backend** : Supabase (PostgreSQL, Auth, RLS)
-- **Styling** : Inline styles (mobile-first)
-- **Date** : date-fns
-- **Déploiement** : Vercel
-
-## 🚀 Installation locale
-
-### Prérequis
-
-- Node.js 18+
-- Un compte [Supabase](https://supabase.com)
-
-### Étapes
-
-1. **Cloner le repo**
+## Installation
 ```bash
-   git clone https://github.com/VOTRE_USERNAME/recipe-app.git
-   cd recipe-app
+npm install
 ```
 
-2. **Installer les dépendances**
+## Configuration
+
+1. Copie `.env.example` vers `.env`
+2. Remplis `VITE_SUPABASE_ANON_KEY` avec ta clé Supabase (Settings → API → anon public)
+
+## Développement
 ```bash
-   npm install
+npm run dev
 ```
 
-3. **Configurer Supabase**
-   - Créer un nouveau projet sur [supabase.com](https://supabase.com)
-   - Aller dans **SQL Editor**
-   - Exécuter le contenu de `supabase-schema.sql`
+## Déploiement
 
-4. **Configurer les variables d'environnement**
-```bash
-   cp .env.example .env
-```
-   Puis remplir avec vos valeurs Supabase
+Push sur GitHub → Vercel déploie automatiquement.
 
-5. **Lancer le serveur de développement**
-```bash
-   npm run dev
-```
-
-## 📄 Licence
-
-Projet privé - Usage personnel uniquement
+Variables d'environnement à configurer sur Vercel :
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`

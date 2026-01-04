@@ -1,172 +1,188 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useApp } from '../contexts/AppContext'
-import { theme, styles, getSeasonColor, getDifficultyColor } from '../lib/theme'
+import { colors, fonts, fontSizes, spacing, borderRadius, shadows, commonStyles, getSeasonColor } from '../lib/theme'
+import { SEASONS, DIFFICULTIES, getSeasonEmoji } from '../lib/i18n'
 
 export default function RecipeForm({ recipe, onClose }) {
-  const { t, language, tags, bases, cuisines, addRecipe, updateRecipe, deleteRecipe } = useApp()
+  const { 
+    t, getName, language,
+    tags, bases, cuisines,
+    createRecipe, updateRecipe, deleteRecipe,
+    recipes
+  } = useApp()
+
   const isEditing = !!recipe
-  
-  const [loading, setLoading] = useState(false)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  
-  const [formData, setFormData] = useState({
-    name: '',
-    season: [],
-    base_id: null,
-    cuisine_id: null,
-    difficulty: 'easy',
-    prep_time_minutes: '',
-    notes: '',
-    tags: [],
-  })
-  
-  useEffect(() => {
-    if (recipe) {
-      setFormData({
-        name: recipe.name || '',
-        season: recipe.season || [],
-        base_id: recipe.base_id || null,
-        cuisine_id: recipe.cuisine_id || null,
-        difficulty: recipe.difficulty || 'easy',
-        prep_time_minutes: recipe.prep_time_minutes || '',
-        notes: recipe.notes || '',
-        tags: recipe.tags?.map(t => t.id) || [],
-      })
-    }
-  }, [recipe])
-  
-  const getName = (item) => {
-    if (!item) return ''
-    return language === 'fr' ? (item.name_fr || item.name) : (item.name_en || item.name)
+
+  // Form state
+  const [name, setName] = useState(recipe?.name || '')
+  const [seasons, setSeasons] = useState(recipe?.seasons || [])
+  const [selectedTags, setSelectedTags] = useState(
+    recipe?.recipe_tags?.map(rt => rt.tag_id) || []
+  )
+  const [baseId, setBaseId] = useState(recipe?.base_id || '')
+  const [cuisineId, setCuisineId] = useState(recipe?.cuisine_id || '')
+  const [difficulty, setDifficulty] = useState(recipe?.difficulty || 'medium')
+  const [prepTime, setPrepTime] = useState(recipe?.prep_time_minutes?.toString() || '')
+  const [notes, setNotes] = useState(recipe?.notes || '')
+
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
+
+  // Check for duplicate name
+  const isDuplicate = recipes.some(r => 
+    r.name.toLowerCase() === name.trim().toLowerCase() && 
+    r.id !== recipe?.id
+  )
+
+  const handleSeasonToggle = (season) => {
+    setSeasons(prev => 
+      prev.includes(season)
+        ? prev.filter(s => s !== season)
+        : [...prev, season]
+    )
   }
-  
-  const seasons = ['winter', 'spring', 'summer', 'autumn']
-  const difficulties = ['easy', 'medium', 'hard']
-  
-  const getSeasonEmoji = (season) => {
-    const emojis = {
-      winter: '❄️',
-      spring: '🌸',
-      summer: '☀️',
-      autumn: '🍂'
-    }
-    return emojis[season] || ''
+
+  const handleTagToggle = (tagId) => {
+    setSelectedTags(prev =>
+      prev.includes(tagId)
+        ? prev.filter(id => id !== tagId)
+        : [...prev, tagId]
+    )
   }
-  
-  const toggleSeason = (season) => {
-    setFormData(prev => ({
-      ...prev,
-      season: prev.season.includes(season)
-        ? prev.season.filter(s => s !== season)
-        : [...prev.season, season]
-    }))
-  }
-  
-  const toggleTag = (tagId) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: prev.tags.includes(tagId)
-        ? prev.tags.filter(t => t !== tagId)
-        : [...prev.tags, tagId]
-    }))
-  }
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!formData.name.trim()) return
     
-    setLoading(true)
+    if (!name.trim()) return
+    if (isDuplicate) {
+      setError('recipe.name.duplicate')
+      return
+    }
+
+    setSaving(true)
+    setError(null)
+
+    const recipeData = {
+      name: name.trim(),
+      seasons,
+      base_id: baseId || null,
+      cuisine_id: cuisineId || null,
+      difficulty,
+      prep_time_minutes: prepTime ? parseInt(prepTime, 10) : null,
+      notes: notes.trim() || null
+    }
+
     try {
-      const data = {
-        ...formData,
-        prep_time_minutes: formData.prep_time_minutes ? parseInt(formData.prep_time_minutes) : null,
-      }
-      
       if (isEditing) {
-        await updateRecipe(recipe.id, data)
+        await updateRecipe(recipe.id, recipeData, selectedTags)
       } else {
-        await addRecipe(data)
+        await createRecipe(recipeData, selectedTags)
       }
       onClose()
-    } catch (error) {
-      console.error('Error saving recipe:', error)
+    } catch (err) {
+      console.error('Save recipe error:', err)
+      setError('common.error')
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
   }
-  
+
   const handleDelete = async () => {
-    setLoading(true)
+    if (!window.confirm(t('recipe.deleteConfirm'))) return
+    
+    setSaving(true)
     try {
       await deleteRecipe(recipe.id)
       onClose()
-    } catch (error) {
-      console.error('Error deleting recipe:', error)
+    } catch (err) {
+      console.error('Delete recipe error:', err)
+      setError('common.error')
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
   }
-  
+
   return (
-    <div style={formStyles.overlay} onClick={onClose}>
-      <div style={formStyles.modal} onClick={e => e.stopPropagation()}>
-        <div style={formStyles.header}>
-          <h2 style={formStyles.title}>
-            {isEditing ? t('editRecipe') : t('addRecipe')}
+    <div style={styles.overlay} onClick={onClose}>
+      <div style={styles.modal} onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div style={styles.header}>
+          <h2 style={styles.title}>
+            {isEditing ? t('recipe.edit') : t('recipe.new')}
           </h2>
-          <button onClick={onClose} style={formStyles.closeButton}>✕</button>
+          <button onClick={onClose} style={styles.closeButton}>✕</button>
         </div>
-        
-        <form onSubmit={handleSubmit} style={formStyles.form}>
-          <div style={formStyles.field}>
-            <label style={formStyles.label}>{t('recipeName')} *</label>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} style={styles.form}>
+          {/* Name */}
+          <div style={styles.field}>
+            <label style={commonStyles.label}>{t('recipe.name')} *</label>
             <input
               type="text"
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="Spaghetti Bolognese"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t('recipe.name.placeholder')}
+              style={{
+                ...styles.input,
+                borderColor: isDuplicate ? colors.error : colors.warmGrayDark
+              }}
               required
-              style={formStyles.input}
               autoFocus
             />
+            {isDuplicate && (
+              <span style={styles.errorText}>{t('recipe.name.duplicate')}</span>
+            )}
           </div>
-          
-          <div style={formStyles.field}>
-            <label style={formStyles.label}>{t('season')}</label>
-            <div style={formStyles.chips}>
-              {seasons.map(season => (
+
+          {/* Seasons */}
+          <div style={styles.field}>
+            <label style={commonStyles.label}>{t('recipe.seasons')}</label>
+            <div style={styles.chipGroup}>
+              {SEASONS.map(season => (
                 <button
                   key={season}
                   type="button"
-                  onClick={() => toggleSeason(season)}
+                  onClick={() => handleSeasonToggle(season)}
                   style={{
-                    ...formStyles.chip,
-                    backgroundColor: formData.season.includes(season)
+                    ...styles.chip,
+                    backgroundColor: seasons.includes(season) 
+                      ? getSeasonColor(season) + '30'
+                      : colors.warmGray,
+                    color: seasons.includes(season)
                       ? getSeasonColor(season)
-                      : theme.colors.backgroundAlt,
-                    color: formData.season.includes(season) ? '#fff' : theme.colors.text,
+                      : colors.textSecondary,
+                    borderColor: seasons.includes(season)
+                      ? getSeasonColor(season)
+                      : 'transparent'
                   }}
                 >
-                  {getSeasonEmoji(season)} {t(`seasons.${season}`)}
+                  {getSeasonEmoji(season)} {t(`season.${season}`)}
                 </button>
               ))}
             </div>
           </div>
-          
-          <div style={formStyles.field}>
-            <label style={formStyles.label}>{t('tags')}</label>
-            <div style={formStyles.chips}>
+
+          {/* Tags */}
+          <div style={styles.field}>
+            <label style={commonStyles.label}>{t('recipe.tags')}</label>
+            <div style={styles.chipGroup}>
               {tags.map(tag => (
                 <button
                   key={tag.id}
                   type="button"
-                  onClick={() => toggleTag(tag.id)}
+                  onClick={() => handleTagToggle(tag.id)}
                   style={{
-                    ...formStyles.chip,
-                    backgroundColor: formData.tags.includes(tag.id)
-                      ? theme.colors.primary
-                      : theme.colors.backgroundAlt,
-                    color: formData.tags.includes(tag.id) ? '#fff' : theme.colors.text,
+                    ...styles.chip,
+                    backgroundColor: selectedTags.includes(tag.id)
+                      ? colors.forest + '20'
+                      : colors.warmGray,
+                    color: selectedTags.includes(tag.id)
+                      ? colors.forest
+                      : colors.textSecondary,
+                    borderColor: selectedTags.includes(tag.id)
+                      ? colors.forest
+                      : 'transparent'
                   }}
                 >
                   {tag.icon} {getName(tag)}
@@ -174,18 +190,16 @@ export default function RecipeForm({ recipe, onClose }) {
               ))}
             </div>
           </div>
-          
-          <div style={formStyles.field}>
-            <label style={formStyles.label}>{t('base')}</label>
+
+          {/* Base (féculent) */}
+          <div style={styles.field}>
+            <label style={commonStyles.label}>{t('recipe.base')}</label>
             <select
-              value={formData.base_id || ''}
-              onChange={(e) => setFormData(prev => ({ 
-                ...prev, 
-                base_id: e.target.value || null 
-              }))}
-              style={formStyles.select}
+              value={baseId}
+              onChange={(e) => setBaseId(e.target.value)}
+              style={styles.select}
             >
-              <option value="">{t('none')}</option>
+              <option value="">{t('recipe.base.none')}</option>
               {bases.map(base => (
                 <option key={base.id} value={base.id}>
                   {getName(base)}
@@ -193,18 +207,16 @@ export default function RecipeForm({ recipe, onClose }) {
               ))}
             </select>
           </div>
-          
-          <div style={formStyles.field}>
-            <label style={formStyles.label}>{t('cuisine')}</label>
+
+          {/* Cuisine */}
+          <div style={styles.field}>
+            <label style={commonStyles.label}>{t('recipe.cuisine')}</label>
             <select
-              value={formData.cuisine_id || ''}
-              onChange={(e) => setFormData(prev => ({ 
-                ...prev, 
-                cuisine_id: e.target.value || null 
-              }))}
-              style={formStyles.select}
+              value={cuisineId}
+              onChange={(e) => setCuisineId(e.target.value)}
+              style={styles.select}
             >
-              <option value="">{t('none')}</option>
+              <option value="">{t('recipe.cuisine.none')}</option>
               {cuisines.map(cuisine => (
                 <option key={cuisine.id} value={cuisine.id}>
                   {cuisine.flag} {getName(cuisine)}
@@ -212,264 +224,268 @@ export default function RecipeForm({ recipe, onClose }) {
               ))}
             </select>
           </div>
-          
-          <div style={formStyles.row}>
-            <div style={{ ...formStyles.field, flex: 1 }}>
-              <label style={formStyles.label}>{t('difficulty')}</label>
-              <select
-                value={formData.difficulty}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  difficulty: e.target.value 
-                }))}
-                style={formStyles.select}
-              >
-                {difficulties.map(diff => (
-                  <option key={diff} value={diff}>
-                    {t(`difficulties.${diff}`)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div style={{ ...formStyles.field, flex: 1 }}>
-              <label style={formStyles.label}>{t('prepTime')} ({t('minutes')})</label>
-              <input
-                type="number"
-                value={formData.prep_time_minutes}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  prep_time_minutes: e.target.value 
-                }))}
-                placeholder="30"
-                min="0"
-                style={formStyles.input}
-              />
+
+          {/* Difficulty */}
+          <div style={styles.field}>
+            <label style={commonStyles.label}>{t('recipe.difficulty')}</label>
+            <div style={styles.radioGroup}>
+              {DIFFICULTIES.map(diff => (
+                <label key={diff} style={styles.radioLabel}>
+                  <input
+                    type="radio"
+                    name="difficulty"
+                    value={diff}
+                    checked={difficulty === diff}
+                    onChange={(e) => setDifficulty(e.target.value)}
+                    style={styles.radio}
+                  />
+                  {t(`difficulty.${diff}`)}
+                </label>
+              ))}
             </div>
           </div>
-          
-          <div style={formStyles.field}>
-            <label style={formStyles.label}>
-              {t('notes')} <span style={formStyles.optional}>({t('optional')})</span>
-            </label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              placeholder="Astuces, variantes..."
-              rows={3}
-              style={formStyles.textarea}
+
+          {/* Prep time */}
+          <div style={styles.field}>
+            <label style={commonStyles.label}>{t('recipe.prepTime')}</label>
+            <input
+              type="number"
+              value={prepTime}
+              onChange={(e) => setPrepTime(e.target.value)}
+              placeholder={t('recipe.prepTime.placeholder')}
+              style={{ ...styles.input, width: '120px' }}
+              min="1"
+              max="600"
             />
           </div>
-          
-          <div style={formStyles.actions}>
+
+          {/* Notes */}
+          <div style={styles.field}>
+            <label style={commonStyles.label}>{t('recipe.notes')}</label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder={t('recipe.notes.placeholder')}
+              style={styles.textarea}
+              rows={4}
+            />
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div style={styles.error}>{t(error)}</div>
+          )}
+
+          {/* Actions */}
+          <div style={styles.actions}>
             {isEditing && (
               <button
                 type="button"
-                onClick={() => setShowDeleteConfirm(true)}
-                style={formStyles.deleteButton}
+                onClick={handleDelete}
+                disabled={saving}
+                style={styles.deleteButton}
               >
-                {t('delete')}
+                {t('recipe.delete')}
               </button>
             )}
-            <div style={formStyles.rightActions}>
+            <div style={styles.actionsRight}>
               <button
                 type="button"
                 onClick={onClose}
-                style={formStyles.cancelButton}
+                disabled={saving}
+                style={styles.cancelButton}
               >
-                {t('cancel')}
+                {t('recipe.cancel')}
               </button>
               <button
                 type="submit"
-                disabled={loading || !formData.name.trim()}
+                disabled={saving || !name.trim() || isDuplicate}
                 style={{
-                  ...formStyles.submitButton,
-                  opacity: loading || !formData.name.trim() ? 0.7 : 1,
+                  ...styles.saveButton,
+                  opacity: (saving || !name.trim() || isDuplicate) ? 0.6 : 1
                 }}
               >
-                {loading ? t('loading') : t('save')}
+                {saving ? t('common.loading') : t('recipe.save')}
               </button>
             </div>
           </div>
         </form>
-        
-        {showDeleteConfirm && (
-          <div style={formStyles.confirmOverlay}>
-            <div style={formStyles.confirmBox}>
-              <p style={formStyles.confirmText}>{t('deleteConfirm')}</p>
-              <div style={formStyles.confirmActions}>
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  style={formStyles.cancelButton}
-                >
-                  {t('cancel')}
-                </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={loading}
-                  style={formStyles.confirmDeleteButton}
-                >
-                  {loading ? t('loading') : t('delete')}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )
 }
 
-const formStyles = {
+// ============================================
+// STYLES
+// ============================================
+
+const styles = {
   overlay: {
-    ...styles.modalOverlay,
-    alignItems: 'flex-end',
-  },
-  modal: {
-    ...styles.modalContent,
-    maxHeight: '95vh',
-    borderRadius: `${theme.borderRadius.xl} ${theme.borderRadius.xl} 0 0`,
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '20px 20px 0 20px',
-    position: 'sticky',
-    top: 0,
-    backgroundColor: theme.colors.surface,
-    zIndex: 1,
-  },
-  title: {
-    fontSize: '20px',
-    fontWeight: '600',
-    color: theme.colors.text,
-    margin: 0,
-  },
-  closeButton: {
-    width: '32px',
-    height: '32px',
-    borderRadius: '50%',
-    backgroundColor: theme.colors.backgroundAlt,
-    border: 'none',
-    fontSize: '16px',
-    color: theme.colors.textSecondary,
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  form: {
-    padding: '20px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '20px',
-  },
-  field: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-  },
-  row: {
-    display: 'flex',
-    gap: '16px',
-  },
-  label: {
-    fontSize: '14px',
-    fontWeight: '600',
-    color: theme.colors.text,
-  },
-  optional: {
-    fontWeight: '400',
-    color: theme.colors.textMuted,
-  },
-  input: {
-    ...styles.input,
-  },
-  select: {
-    ...styles.input,
-    appearance: 'none',
-    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23999'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
-    backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'right 12px center',
-    backgroundSize: '16px',
-    paddingRight: '40px',
-  },
-  textarea: {
-    ...styles.input,
-    resize: 'vertical',
-    minHeight: '80px',
-    fontFamily: 'inherit',
-  },
-  chips: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '8px',
-  },
-  chip: {
-    padding: '8px 14px',
-    borderRadius: theme.borderRadius.full,
-    fontSize: '14px',
-    fontWeight: '500',
-    border: 'none',
-    cursor: 'pointer',
-    transition: theme.transitions.fast,
-  },
-  actions: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: '12px',
-    borderTop: `1px solid ${theme.colors.borderLight}`,
-  },
-  rightActions: {
-    display: 'flex',
-    gap: '12px',
-    marginLeft: 'auto',
-  },
-  cancelButton: {
-    ...styles.buttonGhost,
-    color: theme.colors.textSecondary,
-  },
-  submitButton: {
-    ...styles.buttonPrimary,
-  },
-  deleteButton: {
-    ...styles.buttonGhost,
-    color: theme.colors.error,
-  },
-  confirmOverlay: {
-    position: 'absolute',
+    position: 'fixed',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    padding: spacing.md,
+    paddingTop: spacing.xl,
+    zIndex: 1000,
+    overflowY: 'auto'
+  },
+
+  modal: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.xl,
+    width: '100%',
+    maxWidth: '500px',
+    maxHeight: 'calc(100vh - 100px)',
+    overflowY: 'auto',
+    boxShadow: shadows.lg
+  },
+
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.md,
+    borderBottom: `1px solid ${colors.warmGray}`,
+    position: 'sticky',
+    top: 0,
+    backgroundColor: colors.white,
+    zIndex: 1
+  },
+
+  title: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.xl,
+    color: colors.forest,
+    margin: 0
+  },
+
+  closeButton: {
+    width: '32px',
+    height: '32px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '20px',
-    borderRadius: theme.borderRadius.xl,
+    border: 'none',
+    backgroundColor: colors.warmGray,
+    borderRadius: borderRadius.full,
+    cursor: 'pointer',
+    fontSize: fontSizes.md,
+    color: colors.textSecondary
   },
-  confirmBox: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: '24px',
-    maxWidth: '300px',
-    textAlign: 'center',
-  },
-  confirmText: {
-    fontSize: '15px',
-    color: theme.colors.text,
-    margin: '0 0 20px 0',
-  },
-  confirmActions: {
+
+  form: {
+    padding: spacing.md,
     display: 'flex',
-    gap: '12px',
-    justifyContent: 'center',
+    flexDirection: 'column',
+    gap: spacing.md
   },
-  confirmDeleteButton: {
-    ...styles.buttonPrimary,
-    backgroundColor: theme.colors.error,
+
+  field: {
+    display: 'flex',
+    flexDirection: 'column'
   },
+
+  input: {
+    ...commonStyles.input,
+    padding: spacing.sm
+  },
+
+  select: {
+    ...commonStyles.input,
+    padding: spacing.sm,
+    cursor: 'pointer'
+  },
+
+  textarea: {
+    ...commonStyles.input,
+    padding: spacing.sm,
+    resize: 'vertical',
+    fontFamily: fonts.body
+  },
+
+  chipGroup: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: spacing.xs
+  },
+
+  chip: {
+    padding: `${spacing.xs} ${spacing.sm}`,
+    borderRadius: borderRadius.full,
+    border: '2px solid transparent',
+    fontSize: fontSizes.sm,
+    fontFamily: fonts.body,
+    cursor: 'pointer',
+    transition: 'all 0.2s ease'
+  },
+
+  radioGroup: {
+    display: 'flex',
+    gap: spacing.md
+  },
+
+  radioLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.xs,
+    fontSize: fontSizes.sm,
+    color: colors.textPrimary,
+    cursor: 'pointer'
+  },
+
+  radio: {
+    cursor: 'pointer'
+  },
+
+  errorText: {
+    fontSize: fontSizes.sm,
+    color: colors.error,
+    marginTop: spacing.xs
+  },
+
+  error: {
+    backgroundColor: colors.errorLight,
+    color: colors.error,
+    padding: spacing.sm,
+    borderRadius: borderRadius.md,
+    fontSize: fontSizes.sm,
+    textAlign: 'center'
+  },
+
+  actions: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: spacing.md,
+    borderTop: `1px solid ${colors.warmGray}`,
+    marginTop: spacing.sm
+  },
+
+  actionsRight: {
+    display: 'flex',
+    gap: spacing.sm
+  },
+
+  deleteButton: {
+    ...commonStyles.buttonBase,
+    backgroundColor: 'transparent',
+    color: colors.error,
+    border: `1px solid ${colors.error}`
+  },
+
+  cancelButton: {
+    ...commonStyles.buttonBase,
+    ...commonStyles.buttonSecondary
+  },
+
+  saveButton: {
+    ...commonStyles.buttonBase,
+    ...commonStyles.buttonPrimary
+  }
 }

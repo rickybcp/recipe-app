@@ -1,79 +1,56 @@
-import React from 'react'
 import { useApp } from './contexts/AppContext'
-import { theme } from './lib/theme'
 import AuthPage from './components/AuthPage'
-import HouseholdSetup from './components/HouseholdSetup'
 import Layout from './components/Layout'
-import RecipesPage from './components/RecipesPage'
-import CalendarPage from './components/CalendarPage'
-import SettingsPage from './components/SettingsPage'
+import { colors } from './lib/theme'
 
 export default function App() {
-  const { loading, user, household, currentPage } = useApp()
-  
-  if (loading) {
-    return (
-      <div style={loadingStyles.container}>
-        <div style={loadingStyles.spinner} />
-        <p style={loadingStyles.text}>Chargement...</p>
-      </div>
-    )
+  const { user, authLoading, dataLoading } = useApp()
+
+  // Show nothing while checking auth (prevents flash)
+  if (authLoading) {
+    return null
   }
-  
+
+  // Not authenticated
   if (!user) {
     return <AuthPage />
   }
-  
-  if (!household) {
-    return <HouseholdSetup />
+
+  // Authenticated but loading data
+  if (dataLoading) {
+    return <LoadingScreen />
   }
-  
-  const renderPage = () => {
-    switch (currentPage) {
-      case 'calendar':
-        return <CalendarPage />
-      case 'settings':
-        return <SettingsPage />
-      case 'recipes':
-      default:
-        return <RecipesPage />
-    }
-  }
+
+  // Ready
+  return <Layout />
+}
+
+function LoadingScreen() {
+  const { t } = useApp()
   
   return (
-    <Layout>
-      {renderPage()}
-    </Layout>
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.cream
+    }}>
+      <div style={{
+        textAlign: 'center',
+        color: colors.textSecondary
+      }}>
+        <div style={{
+          width: 40,
+          height: 40,
+          margin: '0 auto 16px',
+          border: `3px solid ${colors.warmGray}`,
+          borderTopColor: colors.forest,
+          borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite'
+        }} />
+        {t('common.loading')}
+      </div>
+    </div>
   )
 }
-
-const loadingStyles = {
-  container: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '100vh',
-    gap: '16px',
-  },
-  spinner: {
-    width: '40px',
-    height: '40px',
-    border: `3px solid ${theme.colors.borderLight}`,
-    borderTopColor: theme.colors.primary,
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
-  },
-  text: {
-    color: theme.colors.textSecondary,
-    fontSize: '15px',
-  }
-}
-
-const styleSheet = document.createElement('style')
-styleSheet.textContent = `
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-`
-document.head.appendChild(styleSheet)

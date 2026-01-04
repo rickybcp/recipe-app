@@ -7,33 +7,44 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>Mes Recettes</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
     <style>
       * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
-        -webkit-tap-highlight-color: transparent;
       }
       html, body, #root {
         height: 100%;
-        font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
-        background: #FAF7F2;
-        color: #2C2C2C;
-        overflow-x: hidden;
+        width: 100%;
       }
-      input, button, select, textarea {
-        font-family: inherit;
+      body {
+        font-family: 'Nunito', sans-serif;
+        background-color: #FAF8F5;
+        color: #2D3748;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
       }
-      button {
-        cursor: pointer;
-        border: none;
-        background: none;
+      /* Prevent pull-to-refresh on mobile */
+      body {
+        overscroll-behavior-y: contain;
       }
-      input:focus, select:focus, textarea:focus, button:focus {
-        outline: none;
+      /* Loading state before React hydrates */
+      #root:empty::after {
+        content: '';
+        display: block;
+        width: 40px;
+        height: 40px;
+        margin: 40vh auto;
+        border: 3px solid #E8E4DE;
+        border-top-color: #2D5A3D;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
       }
     </style>
   </head>

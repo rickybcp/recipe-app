@@ -1,129 +1,134 @@
-import React from 'react'
 import { useApp } from '../contexts/AppContext'
-import { theme } from '../lib/theme'
+import { colors, fonts, fontSizes, spacing, shadows } from '../lib/theme'
+import RecipesPage from './RecipesPage'
+import CalendarPage from './CalendarPage'
+import SettingsPage from './SettingsPage'
 
-export default function Layout({ children }) {
-  const { t, currentPage, setPage, household } = useApp()
-  
-  const navItems = [
-    { id: 'recipes', icon: '📖', label: t('recipes') },
-    { id: 'calendar', icon: '📅', label: t('calendar') },
-    { id: 'settings', icon: '⚙️', label: t('settings') },
-  ]
-  
+export default function Layout() {
+  const { currentTab, setCurrentTab, t } = useApp()
+
+  const renderPage = () => {
+    switch (currentTab) {
+      case 'recipes':
+        return <RecipesPage />
+      case 'calendar':
+        return <CalendarPage />
+      case 'settings':
+        return <SettingsPage />
+      default:
+        return <RecipesPage />
+    }
+  }
+
   return (
-    <div style={layoutStyles.container}>
-      <header style={layoutStyles.header}>
-        <div style={layoutStyles.headerContent}>
-          <span style={layoutStyles.logo}>🍳</span>
-          <div>
-            <h1 style={layoutStyles.title}>{household?.name || 'Mes Recettes'}</h1>
-          </div>
-        </div>
-      </header>
-      
-      <main style={layoutStyles.main}>
-        {children}
+    <div style={styles.container}>
+      {/* Main content */}
+      <main style={styles.main}>
+        {renderPage()}
       </main>
-      
-      <nav style={layoutStyles.nav}>
-        {navItems.map(item => (
-          <button
-            key={item.id}
-            onClick={() => setPage(item.id)}
-            style={{
-              ...layoutStyles.navItem,
-              ...(currentPage === item.id ? layoutStyles.navItemActive : {}),
-            }}
-          >
-            <span style={layoutStyles.navIcon}>{item.icon}</span>
-            <span style={{
-              ...layoutStyles.navLabel,
-              ...(currentPage === item.id ? layoutStyles.navLabelActive : {}),
-            }}>
-              {item.label}
-            </span>
-          </button>
-        ))}
+
+      {/* Bottom navigation */}
+      <nav style={styles.nav}>
+        <NavButton
+          icon="🍳"
+          label={t('nav.recipes')}
+          isActive={currentTab === 'recipes'}
+          onClick={() => setCurrentTab('recipes')}
+        />
+        <NavButton
+          icon="📅"
+          label={t('nav.calendar')}
+          isActive={currentTab === 'calendar'}
+          onClick={() => setCurrentTab('calendar')}
+        />
+        <NavButton
+          icon="⚙️"
+          label={t('nav.settings')}
+          isActive={currentTab === 'settings'}
+          onClick={() => setCurrentTab('settings')}
+        />
       </nav>
     </div>
   )
 }
 
-const layoutStyles = {
+function NavButton({ icon, label, isActive, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        ...styles.navButton,
+        color: isActive ? colors.forest : colors.textMuted,
+        backgroundColor: isActive ? colors.successLight : 'transparent'
+      }}
+    >
+      <span style={styles.navIcon}>{icon}</span>
+      <span style={{
+        ...styles.navLabel,
+        fontWeight: isActive ? 700 : 400
+      }}>
+        {label}
+      </span>
+    </button>
+  )
+}
+
+// ============================================
+// STYLES
+// ============================================
+
+const styles = {
   container: {
+    minHeight: '100vh',
     display: 'flex',
     flexDirection: 'column',
-    minHeight: '100vh',
-    maxHeight: '100vh',
-    overflow: 'hidden',
+    backgroundColor: colors.cream
   },
-  header: {
-    backgroundColor: theme.colors.primary,
-    padding: '12px 16px',
-    paddingTop: 'max(12px, env(safe-area-inset-top))',
-    boxShadow: theme.shadows.md,
-    position: 'relative',
-    zIndex: 10,
-  },
-  headerContent: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    maxWidth: '600px',
-    margin: '0 auto',
-  },
-  logo: {
-    fontSize: '28px',
-  },
-  title: {
-    fontFamily: theme.fonts.heading,
-    fontSize: '20px',
-    color: theme.colors.textInverse,
-    margin: 0,
-    fontWeight: '600',
-  },
+
   main: {
     flex: 1,
-    overflow: 'auto',
-    WebkitOverflowScrolling: 'touch',
+    paddingBottom: '80px', // Space for nav
+    overflowY: 'auto'
   },
+
   nav: {
+    position: 'fixed',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '70px',
+    backgroundColor: colors.white,
+    borderTop: `1px solid ${colors.warmGray}`,
     display: 'flex',
     justifyContent: 'space-around',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    borderTop: `1px solid ${theme.colors.border}`,
-    padding: '8px 0',
-    paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
-    position: 'relative',
-    zIndex: 10,
+    padding: `0 ${spacing.md}`,
+    paddingBottom: 'env(safe-area-inset-bottom)',
+    boxShadow: shadows.lg
   },
-  navItem: {
+
+  navButton: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    gap: '2px',
-    padding: '8px 20px',
-    background: 'none',
+    justifyContent: 'center',
+    gap: '4px',
+    padding: `${spacing.sm} ${spacing.md}`,
     border: 'none',
-    borderRadius: theme.borderRadius.md,
+    borderRadius: '12px',
     cursor: 'pointer',
-    transition: theme.transitions.fast,
+    transition: 'all 0.2s ease',
+    fontFamily: fonts.body,
+    minWidth: '70px'
   },
-  navItemActive: {
-    backgroundColor: theme.colors.backgroundAlt,
-  },
+
   navIcon: {
-    fontSize: '22px',
+    fontSize: '24px',
+    lineHeight: 1
   },
+
   navLabel: {
-    fontSize: '11px',
-    fontWeight: '500',
-    color: theme.colors.textSecondary,
-  },
-  navLabelActive: {
-    color: theme.colors.primary,
-    fontWeight: '600',
-  },
+    fontSize: fontSizes.xs,
+    lineHeight: 1
+  }
 }

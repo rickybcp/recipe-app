@@ -1,265 +1,266 @@
-export const translations = {
+// ============================================
+// TRANSLATIONS
+// ============================================
+
+const translations = {
     fr: {
-      // Navigation
-      recipes: 'Recettes',
-      calendar: 'Calendrier',
-      settings: 'Paramètres',
-      
       // Auth
-      login: 'Connexion',
-      signup: 'Inscription',
-      logout: 'Déconnexion',
-      email: 'Email',
-      password: 'Mot de passe',
-      confirmPassword: 'Confirmer le mot de passe',
-      displayName: 'Nom affiché',
-      loginButton: 'Se connecter',
-      signupButton: "S'inscrire",
-      noAccount: "Pas de compte ?",
-      hasAccount: 'Déjà un compte ?',
-      createAccount: 'Créer un compte',
-      forgotPassword: 'Mot de passe oublié ?',
-      
-      // Household
-      createHousehold: 'Créer un foyer',
-      joinHousehold: 'Rejoindre un foyer',
-      householdName: 'Nom du foyer',
-      inviteCode: "Code d'invitation",
-      inviteMember: 'Inviter un membre',
-      inviteByEmail: 'Inviter par email',
-      sendInvite: 'Envoyer invitation',
-      pendingInvites: 'Invitations en attente',
-      members: 'Membres',
-      
+      'auth.title': 'Mes Recettes',
+      'auth.subtitle': 'Organisez vos recettes préférées',
+      'auth.login': 'Connexion',
+      'auth.signup': 'Inscription',
+      'auth.email': 'Email',
+      'auth.password': 'Mot de passe',
+      'auth.displayName': 'Votre prénom',
+      'auth.loginButton': 'Se connecter',
+      'auth.signupButton': "S'inscrire",
+      'auth.switchToSignup': "Pas encore de compte ? S'inscrire",
+      'auth.switchToLogin': 'Déjà un compte ? Se connecter',
+      'auth.error.invalid': 'Email ou mot de passe incorrect',
+      'auth.error.exists': 'Un compte existe déjà avec cet email',
+      'auth.error.weak': 'Le mot de passe doit faire au moins 6 caractères',
+      'auth.error.generic': 'Une erreur est survenue',
+  
+      // Navigation
+      'nav.recipes': 'Recettes',
+      'nav.calendar': 'Calendrier',
+      'nav.settings': 'Paramètres',
+  
       // Recipes
-      allRecipes: 'Toutes les recettes',
-      addRecipe: 'Ajouter une recette',
-      editRecipe: 'Modifier la recette',
-      deleteRecipe: 'Supprimer la recette',
-      deleteConfirm: 'Êtes-vous sûr de vouloir supprimer cette recette ?',
-      recipeName: 'Nom de la recette',
-      noRecipes: 'Aucune recette trouvée',
-      noRecipesYet: "Vous n'avez pas encore de recettes",
-      addFirstRecipe: 'Ajoutez votre première recette !',
-      recipeCount: '{count} recette(s)',
-      
-      // Filters
-      filters: 'Filtres',
-      clearFilters: 'Effacer les filtres',
-      search: 'Rechercher...',
-      season: 'Saison',
-      base: 'Féculent',
-      cuisine: 'Cuisine',
-      tags: 'Tags',
-      difficulty: 'Difficulté',
-      prepTime: 'Temps de préparation',
-      
+      'recipes.title': 'Mes recettes',
+      'recipes.empty': 'Aucune recette pour le moment',
+      'recipes.emptyFiltered': 'Aucune recette ne correspond aux filtres',
+      'recipes.add': 'Nouvelle recette',
+      'recipes.search': 'Rechercher...',
+      'recipes.filters': 'Filtres',
+      'recipes.clearFilters': 'Effacer',
+  
+      // Recipe form
+      'recipe.new': 'Nouvelle recette',
+      'recipe.edit': 'Modifier la recette',
+      'recipe.name': 'Nom de la recette',
+      'recipe.name.placeholder': 'Ex: Pâtes carbonara',
+      'recipe.name.duplicate': 'Une recette avec ce nom existe déjà',
+      'recipe.seasons': 'Saisons',
+      'recipe.tags': 'Tags',
+      'recipe.base': 'Féculent / Base',
+      'recipe.base.none': 'Aucun',
+      'recipe.cuisine': 'Cuisine',
+      'recipe.cuisine.none': 'Non spécifié',
+      'recipe.difficulty': 'Difficulté',
+      'recipe.prepTime': 'Temps de préparation',
+      'recipe.prepTime.placeholder': 'En minutes',
+      'recipe.notes': 'Notes',
+      'recipe.notes.placeholder': 'Instructions, astuces, etc.',
+      'recipe.save': 'Enregistrer',
+      'recipe.cancel': 'Annuler',
+      'recipe.delete': 'Supprimer',
+      'recipe.deleteConfirm': 'Supprimer cette recette ?',
+  
       // Seasons
-      seasons: {
-        winter: 'Hiver',
-        spring: 'Printemps',
-        summer: 'Été',
-        autumn: 'Automne'
-      },
-      
-      // Difficulties
-      difficulties: {
-        easy: 'Facile',
-        medium: 'Moyen',
-        hard: 'Difficile'
-      },
-      
+      'season.winter': 'Hiver',
+      'season.spring': 'Printemps',
+      'season.summer': 'Été',
+      'season.autumn': 'Automne',
+  
+      // Difficulty
+      'difficulty.easy': 'Facile',
+      'difficulty.medium': 'Moyen',
+      'difficulty.hard': 'Difficile',
+  
       // Calendar
-      weekView: 'Semaine',
-      monthView: 'Mois',
-      today: "Aujourd'hui",
-      addMeal: 'Ajouter un repas',
-      removeMeal: 'Retirer',
-      noMealsPlanned: 'Aucun repas planifié',
-      mealTypes: {
-        breakfast: 'Petit-déjeuner',
-        lunch: 'Déjeuner',
-        dinner: 'Dîner',
-        snack: 'Goûter'
-      },
-      weekdays: {
-        short: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
-        long: ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
-      },
-      months: ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'],
-      
+      'calendar.title': 'Planning des repas',
+      'calendar.today': "Aujourd'hui",
+      'calendar.week': 'Semaine',
+      'calendar.month': 'Mois',
+      'calendar.addMeal': 'Ajouter un repas',
+      'calendar.pickRecipe': 'Choisir une recette',
+      'calendar.noRecipes': 'Aucune recette disponible',
+      'calendar.removeMeal': 'Retirer',
+  
       // Settings
-      language: 'Langue',
-      manageTags: 'Gérer les tags',
-      manageBases: 'Gérer les féculents',
-      addTag: 'Ajouter un tag',
-      addBase: 'Ajouter un féculent',
-      nameFr: 'Nom (français)',
-      nameEn: 'Nom (anglais)',
-      icon: 'Icône',
-      systemItem: 'Élément système',
-      cannotDeleteSystem: 'Les éléments système ne peuvent pas être supprimés',
-      
+      'settings.title': 'Paramètres',
+      'settings.tags': 'Gérer les tags',
+      'settings.bases': 'Gérer les féculents',
+      'settings.language': 'Langue',
+      'settings.logout': 'Déconnexion',
+      'settings.logoutConfirm': 'Voulez-vous vous déconnecter ?',
+  
+      // Tag/Base management
+      'manage.tags.title': 'Mes tags',
+      'manage.bases.title': 'Mes féculents',
+      'manage.add': 'Ajouter',
+      'manage.nameFr': 'Nom (français)',
+      'manage.nameEn': 'Nom (anglais)',
+      'manage.icon': 'Icône',
+      'manage.save': 'Enregistrer',
+      'manage.cancel': 'Annuler',
+      'manage.delete': 'Supprimer',
+      'manage.deleteConfirm': 'Supprimer cet élément ?',
+      'manage.inUse': 'Utilisé dans {count} recette(s)',
+  
       // Common
-      save: 'Enregistrer',
-      cancel: 'Annuler',
-      delete: 'Supprimer',
-      edit: 'Modifier',
-      add: 'Ajouter',
-      close: 'Fermer',
-      loading: 'Chargement...',
-      error: 'Erreur',
-      success: 'Succès',
-      minutes: 'min',
-      notes: 'Notes',
-      optional: 'optionnel',
-      select: 'Sélectionner',
-      none: 'Aucun',
-      all: 'Tous',
+      'common.loading': 'Chargement...',
+      'common.error': 'Erreur',
+      'common.retry': 'Réessayer',
+      'common.confirm': 'Confirmer',
+      'common.yes': 'Oui',
+      'common.no': 'Non',
+      'common.minutes': 'min'
     },
-    
+  
     en: {
-      // Navigation
-      recipes: 'Recipes',
-      calendar: 'Calendar',
-      settings: 'Settings',
-      
       // Auth
-      login: 'Login',
-      signup: 'Sign up',
-      logout: 'Logout',
-      email: 'Email',
-      password: 'Password',
-      confirmPassword: 'Confirm password',
-      displayName: 'Display name',
-      loginButton: 'Log in',
-      signupButton: 'Sign up',
-      noAccount: "Don't have an account?",
-      hasAccount: 'Already have an account?',
-      createAccount: 'Create account',
-      forgotPassword: 'Forgot password?',
-      
-      // Household
-      createHousehold: 'Create household',
-      joinHousehold: 'Join household',
-      householdName: 'Household name',
-      inviteCode: 'Invite code',
-      inviteMember: 'Invite member',
-      inviteByEmail: 'Invite by email',
-      sendInvite: 'Send invite',
-      pendingInvites: 'Pending invites',
-      members: 'Members',
-      
+      'auth.title': 'My Recipes',
+      'auth.subtitle': 'Organize your favorite recipes',
+      'auth.login': 'Login',
+      'auth.signup': 'Sign up',
+      'auth.email': 'Email',
+      'auth.password': 'Password',
+      'auth.displayName': 'Your name',
+      'auth.loginButton': 'Log in',
+      'auth.signupButton': 'Sign up',
+      'auth.switchToSignup': "Don't have an account? Sign up",
+      'auth.switchToLogin': 'Already have an account? Log in',
+      'auth.error.invalid': 'Invalid email or password',
+      'auth.error.exists': 'An account already exists with this email',
+      'auth.error.weak': 'Password must be at least 6 characters',
+      'auth.error.generic': 'An error occurred',
+  
+      // Navigation
+      'nav.recipes': 'Recipes',
+      'nav.calendar': 'Calendar',
+      'nav.settings': 'Settings',
+  
       // Recipes
-      allRecipes: 'All recipes',
-      addRecipe: 'Add recipe',
-      editRecipe: 'Edit recipe',
-      deleteRecipe: 'Delete recipe',
-      deleteConfirm: 'Are you sure you want to delete this recipe?',
-      recipeName: 'Recipe name',
-      noRecipes: 'No recipes found',
-      noRecipesYet: "You don't have any recipes yet",
-      addFirstRecipe: 'Add your first recipe!',
-      recipeCount: '{count} recipe(s)',
-      
-      // Filters
-      filters: 'Filters',
-      clearFilters: 'Clear filters',
-      search: 'Search...',
-      season: 'Season',
-      base: 'Base',
-      cuisine: 'Cuisine',
-      tags: 'Tags',
-      difficulty: 'Difficulty',
-      prepTime: 'Prep time',
-      
+      'recipes.title': 'My recipes',
+      'recipes.empty': 'No recipes yet',
+      'recipes.emptyFiltered': 'No recipes match the filters',
+      'recipes.add': 'New recipe',
+      'recipes.search': 'Search...',
+      'recipes.filters': 'Filters',
+      'recipes.clearFilters': 'Clear',
+  
+      // Recipe form
+      'recipe.new': 'New recipe',
+      'recipe.edit': 'Edit recipe',
+      'recipe.name': 'Recipe name',
+      'recipe.name.placeholder': 'E.g. Spaghetti carbonara',
+      'recipe.name.duplicate': 'A recipe with this name already exists',
+      'recipe.seasons': 'Seasons',
+      'recipe.tags': 'Tags',
+      'recipe.base': 'Starch / Base',
+      'recipe.base.none': 'None',
+      'recipe.cuisine': 'Cuisine',
+      'recipe.cuisine.none': 'Not specified',
+      'recipe.difficulty': 'Difficulty',
+      'recipe.prepTime': 'Prep time',
+      'recipe.prepTime.placeholder': 'In minutes',
+      'recipe.notes': 'Notes',
+      'recipe.notes.placeholder': 'Instructions, tips, etc.',
+      'recipe.save': 'Save',
+      'recipe.cancel': 'Cancel',
+      'recipe.delete': 'Delete',
+      'recipe.deleteConfirm': 'Delete this recipe?',
+  
       // Seasons
-      seasons: {
-        winter: 'Winter',
-        spring: 'Spring',
-        summer: 'Summer',
-        autumn: 'Autumn'
-      },
-      
-      // Difficulties
-      difficulties: {
-        easy: 'Easy',
-        medium: 'Medium',
-        hard: 'Hard'
-      },
-      
+      'season.winter': 'Winter',
+      'season.spring': 'Spring',
+      'season.summer': 'Summer',
+      'season.autumn': 'Autumn',
+  
+      // Difficulty
+      'difficulty.easy': 'Easy',
+      'difficulty.medium': 'Medium',
+      'difficulty.hard': 'Hard',
+  
       // Calendar
-      weekView: 'Week',
-      monthView: 'Month',
-      today: 'Today',
-      addMeal: 'Add meal',
-      removeMeal: 'Remove',
-      noMealsPlanned: 'No meals planned',
-      mealTypes: {
-        breakfast: 'Breakfast',
-        lunch: 'Lunch',
-        dinner: 'Dinner',
-        snack: 'Snack'
-      },
-      weekdays: {
-        short: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-        long: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-      },
-      months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-      
+      'calendar.title': 'Meal planning',
+      'calendar.today': 'Today',
+      'calendar.week': 'Week',
+      'calendar.month': 'Month',
+      'calendar.addMeal': 'Add meal',
+      'calendar.pickRecipe': 'Pick a recipe',
+      'calendar.noRecipes': 'No recipes available',
+      'calendar.removeMeal': 'Remove',
+  
       // Settings
-      language: 'Language',
-      manageTags: 'Manage tags',
-      manageBases: 'Manage bases',
-      addTag: 'Add tag',
-      addBase: 'Add base',
-      nameFr: 'Name (French)',
-      nameEn: 'Name (English)',
-      icon: 'Icon',
-      systemItem: 'System item',
-      cannotDeleteSystem: 'System items cannot be deleted',
-      
+      'settings.title': 'Settings',
+      'settings.tags': 'Manage tags',
+      'settings.bases': 'Manage starches',
+      'settings.language': 'Language',
+      'settings.logout': 'Log out',
+      'settings.logoutConfirm': 'Do you want to log out?',
+  
+      // Tag/Base management
+      'manage.tags.title': 'My tags',
+      'manage.bases.title': 'My starches',
+      'manage.add': 'Add',
+      'manage.nameFr': 'Name (French)',
+      'manage.nameEn': 'Name (English)',
+      'manage.icon': 'Icon',
+      'manage.save': 'Save',
+      'manage.cancel': 'Cancel',
+      'manage.delete': 'Delete',
+      'manage.deleteConfirm': 'Delete this item?',
+      'manage.inUse': 'Used in {count} recipe(s)',
+  
       // Common
-      save: 'Save',
-      cancel: 'Cancel',
-      delete: 'Delete',
-      edit: 'Edit',
-      add: 'Add',
-      close: 'Close',
-      loading: 'Loading...',
-      error: 'Error',
-      success: 'Success',
-      minutes: 'min',
-      notes: 'Notes',
-      optional: 'optional',
-      select: 'Select',
-      none: 'None',
-      all: 'All',
+      'common.loading': 'Loading...',
+      'common.error': 'Error',
+      'common.retry': 'Retry',
+      'common.confirm': 'Confirm',
+      'common.yes': 'Yes',
+      'common.no': 'No',
+      'common.minutes': 'min'
     }
   }
   
-  export const useTranslation = (language) => {
-    const t = (key, params = {}) => {
-      const keys = key.split('.')
-      let value = translations[language]
-      
-      for (const k of keys) {
-        if (value && typeof value === 'object') {
-          value = value[k]
-        } else {
-          return key
-        }
-      }
-      
-      if (typeof value === 'string') {
-        return Object.entries(params).reduce(
-          (str, [k, v]) => str.replace(`{${k}}`, v),
-          value
-        )
-      }
-      
-      return value || key
+  // ============================================
+  // TRANSLATION FUNCTION
+  // ============================================
+  
+  export function createT(language) {
+    return function t(key, params = {}) {
+      const lang = translations[language] || translations.fr
+      let text = lang[key] || translations.fr[key] || key
+  
+      // Replace parameters like {count}
+      Object.entries(params).forEach(([param, value]) => {
+        text = text.replace(`{${param}}`, value)
+      })
+  
+      return text
     }
-    
-    return { t }
   }
+  
+  // ============================================
+  // LOCALIZED NAME HELPER
+  // ============================================
+  
+  export function getLocalizedName(item, language) {
+    if (!item) return ''
+    return language === 'en' ? (item.name_en || item.name_fr) : item.name_fr
+  }
+  
+  // ============================================
+  // SEASON HELPERS
+  // ============================================
+  
+  export const SEASONS = ['winter', 'spring', 'summer', 'autumn']
+  
+  export function getSeasonEmoji(season) {
+    const emojis = {
+      winter: '❄️',
+      spring: '🌸',
+      summer: '☀️',
+      autumn: '🍂'
+    }
+    return emojis[season] || ''
+  }
+  
+  // ============================================
+  // DIFFICULTY HELPERS
+  // ============================================
+  
+  export const DIFFICULTIES = ['easy', 'medium', 'hard']

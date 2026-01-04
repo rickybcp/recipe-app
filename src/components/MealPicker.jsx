@@ -1,112 +1,93 @@
-import React, { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useApp } from '../contexts/AppContext'
-import { theme, styles } from '../lib/theme'
 import { format } from 'date-fns'
 import { fr, enUS } from 'date-fns/locale'
+import { colors, fonts, fontSizes, spacing, borderRadius, shadows, commonStyles } from '../lib/theme'
 
 export default function MealPicker({ date, onClose }) {
-  const { t, language, recipes, mealPlans, addMealPlan } = useApp()
-  const [search, setSearch] = useState('')
-  const [loading, setLoading] = useState(false)
+  const { t, getName, language, recipes, tags, createMealPlan } = useApp()
   
+  const [searchQuery, setSearchQuery] = useState('')
+  const [saving, setSaving] = useState(false)
+
   const locale = language === 'fr' ? fr : enUS
-  const dateStr = format(date, 'yyyy-MM-dd')
-  
-  const existingMeals = mealPlans.filter(mp => mp.planned_date === dateStr)
-  const existingRecipeIds = existingMeals.map(m => m.recipe_id)
-  
-  const filteredRecipes = useMemo(() => {
-    if (!search.trim()) return recipes
-    const query = search.toLowerCase()
-    return recipes.filter(r => 
-      r.name.toLowerCase().includes(query)
-    )
-  }, [recipes, search])
-  
+  const formattedDate = format(date, 'EEEE d MMMM', { locale })
+
+  // Filter recipes by search
+  const filteredRecipes = recipes.filter(recipe =>
+    recipe.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
   const handleSelectRecipe = async (recipe) => {
-    setLoading(true)
+    setSaving(true)
     try {
-      await addMealPlan(recipe.id, dateStr, 'dinner')
+      const dateStr = format(date, 'yyyy-MM-dd')
+      await createMealPlan(recipe.id, dateStr)
       onClose()
     } catch (error) {
-      console.error('Error adding meal:', error)
+      console.error('Failed to add meal:', error)
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
   }
-  
-  const getName = (item) => {
-    if (!item) return ''
-    return language === 'fr' ? (item.name_fr || item.name) : (item.name_en || item.name)
+
+  // Get tags for a recipe
+  const getRecipeTags = (recipe) => {
+    return recipe.recipe_tags
+      ?.map(rt => tags.find(tag => tag.id === rt.tag_id))
+      .filter(Boolean) || []
   }
-  
+
   return (
-    <div style={pickerStyles.overlay} onClick={onClose}>
-      <div style={pickerStyles.modal} onClick={e => e.stopPropagation()}>
-        <div style={pickerStyles.header}>
+    <div style={styles.overlay} onClick={onClose}>
+      <div style={styles.modal} onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div style={styles.header}>
           <div>
-            <h2 style={pickerStyles.title}>{t('addMeal')}</h2>
-            <p style={pickerStyles.date}>
-              {format(date, 'EEEE d MMMM', { locale })}
-            </p>
+            <h2 style={styles.title}>{t('calendar.addMeal')}</h2>
+            <p style={styles.date}>{formattedDate}</p>
           </div>
-          <button onClick={onClose} style={pickerStyles.closeButton}>✕</button>
+          <button onClick={onClose} style={styles.closeButton}>✕</button>
         </div>
-        
-        <div style={pickerStyles.searchContainer}>
-          <span style={pickerStyles.searchIcon}>🔍</span>
+
+        {/* Search */}
+        <div style={styles.searchContainer}>
           <input
             type="text"
-            placeholder={t('search')}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={pickerStyles.searchInput}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t('recipes.search')}
+            style={styles.searchInput}
             autoFocus
           />
         </div>
-        
-        <div style={pickerStyles.recipeList}>
+
+        {/* Recipe list */}
+        <div style={styles.list}>
           {filteredRecipes.length === 0 ? (
-            <div style={pickerStyles.emptyState}>
-              <p>{t('noRecipes')}</p>
+            <div style={styles.empty}>
+              <p style={styles.emptyText}>{t('calendar.noRecipes')}</p>
             </div>
           ) : (
             filteredRecipes.map(recipe => {
-              const isAlreadyPlanned = existingRecipeIds.includes(recipe.id)
-              const tagIcons = recipe.tags?.map(t => t.icon).filter(Boolean).join(' ') || ''
-              
+              const recipeTags = getRecipeTags(recipe)
               return (
                 <button
                   key={recipe.id}
-                  onClick={() => !isAlreadyPlanned && handleSelectRecipe(recipe)}
-                  disabled={loading || isAlreadyPlanned}
-                  style={{
-                    ...pickerStyles.recipeItem,
-                    opacity: isAlreadyPlanned ? 0.5 : 1,
-                    cursor: isAlreadyPlanned ? 'default' : 'pointer',
-                  }}
+                  onClick={() => handleSelectRecipe(recipe)}
+                  disabled={saving}
+                  style={styles.recipeItem}
                 >
-                  <div style={pickerStyles.recipeInfo}>
-                    <span style={pickerStyles.recipeName}>{recipe.name}</span>
-                    <div style={pickerStyles.recipeMeta}>
-                      {recipe.cuisine?.flag && (
-                        <span>{recipe.cuisine.flag}</span>
-                      )}
-                      {tagIcons && <span>{tagIcons}</span>}
-                      {recipe.prep_time_minutes && (
-                        <span style={pickerStyles.time}>
-                          ⏱️ {recipe.prep_time_minutes} {t('minutes')}
-                        </span>
-                      )}
-                    </div>
+                  <div style={styles.recipeInfo}>
+                    <span style={styles.recipeName}>{recipe.name}</span>
+                    {recipeTags.length > 0 && (
+                      <span style={styles.recipeTags}>
+                        {recipeTags.map(tag => tag.icon).join(' ')}
+                      </span>
+                    )}
                   </div>
-                  {recipe.base && (
-                    <span style={pickerStyles.base}>{getName(recipe.base)}</span>
-                  )}
-                  {isAlreadyPlanned ? (
-                    <span style={pickerStyles.checkmark}>✓</span>
-                  ) : (
-                    <span style={pickerStyles.addIcon}>+</span>
+                  {recipe.cuisine && (
+                    <span style={styles.recipeCuisine}>{recipe.cuisine.flag}</span>
                   )}
                 </button>
               )
@@ -118,144 +99,134 @@ export default function MealPicker({ date, onClose }) {
   )
 }
 
-const pickerStyles = {
+// ============================================
+// STYLES
+// ============================================
+
+const styles = {
   overlay: {
-    ...styles.modalOverlay,
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    display: 'flex',
     alignItems: 'flex-end',
+    justifyContent: 'center',
+    zIndex: 1000
   },
+
   modal: {
-    ...styles.modalContent,
-    maxHeight: '80vh',
-    borderRadius: `${theme.borderRadius.xl} ${theme.borderRadius.xl} 0 0`,
+    backgroundColor: colors.white,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    width: '100%',
+    maxWidth: '500px',
+    maxHeight: '70vh',
     display: 'flex',
     flexDirection: 'column',
+    boxShadow: shadows.lg
   },
+
   header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    padding: '20px',
-    borderBottom: `1px solid ${theme.colors.borderLight}`,
+    padding: spacing.md,
+    borderBottom: `1px solid ${colors.warmGray}`
   },
+
   title: {
-    fontSize: '18px',
-    fontWeight: '600',
-    color: theme.colors.text,
-    margin: '0 0 4px 0',
+    fontFamily: fonts.heading,
+    fontSize: fontSizes.lg,
+    color: colors.forest,
+    margin: 0
   },
+
   date: {
-    fontSize: '14px',
-    color: theme.colors.textSecondary,
+    fontSize: fontSizes.sm,
+    color: colors.textSecondary,
     margin: 0,
-    textTransform: 'capitalize',
+    marginTop: '2px',
+    textTransform: 'capitalize'
   },
+
   closeButton: {
     width: '32px',
     height: '32px',
-    borderRadius: '50%',
-    backgroundColor: theme.colors.backgroundAlt,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     border: 'none',
-    fontSize: '16px',
-    color: theme.colors.textSecondary,
+    backgroundColor: colors.warmGray,
+    borderRadius: borderRadius.full,
     cursor: 'pointer',
+    fontSize: fontSizes.md,
+    color: colors.textSecondary
   },
+
   searchContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    margin: '16px',
-    padding: '12px 16px',
-    backgroundColor: theme.colors.backgroundAlt,
-    borderRadius: theme.borderRadius.full,
+    padding: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+    borderBottom: `1px solid ${colors.warmGray}`
   },
-  searchIcon: {
-    fontSize: '16px',
-    opacity: 0.6,
-  },
+
   searchInput: {
-    flex: 1,
-    border: 'none',
-    background: 'none',
-    fontSize: '15px',
-    color: theme.colors.text,
-    outline: 'none',
+    ...commonStyles.input,
+    padding: spacing.sm,
+    fontSize: fontSizes.md
   },
-  recipeList: {
+
+  list: {
     flex: 1,
-    overflow: 'auto',
-    padding: '0 16px 16px',
+    overflowY: 'auto',
+    padding: spacing.sm
   },
-  emptyState: {
+
+  empty: {
     textAlign: 'center',
-    padding: '32px',
-    color: theme.colors.textSecondary,
+    padding: spacing.xl
   },
+
+  emptyText: {
+    fontSize: fontSizes.md,
+    color: colors.textMuted
+  },
+
   recipeItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
     width: '100%',
-    padding: '14px 16px',
-    backgroundColor: theme.colors.surface,
-    border: `1px solid ${theme.colors.borderLight}`,
-    borderRadius: theme.borderRadius.md,
-    marginBottom: '8px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.md,
+    backgroundColor: 'transparent',
+    border: 'none',
+    borderRadius: borderRadius.md,
+    cursor: 'pointer',
+    fontFamily: fonts.body,
     textAlign: 'left',
-    transition: theme.transitions.fast,
+    transition: 'background-color 0.2s ease'
   },
+
   recipeInfo: {
-    flex: 1,
-    minWidth: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px'
   },
+
   recipeName: {
-    display: 'block',
-    fontSize: '15px',
-    fontWeight: '600',
-    color: theme.colors.text,
-    marginBottom: '4px',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
+    fontSize: fontSizes.md,
+    color: colors.textPrimary,
+    fontWeight: 500
   },
-  recipeMeta: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    fontSize: '13px',
+
+  recipeTags: {
+    fontSize: fontSizes.sm
   },
-  time: {
-    color: theme.colors.textSecondary,
-  },
-  base: {
-    padding: '4px 10px',
-    backgroundColor: theme.colors.backgroundAlt,
-    borderRadius: theme.borderRadius.full,
-    fontSize: '12px',
-    color: theme.colors.textSecondary,
-    whiteSpace: 'nowrap',
-  },
-  addIcon: {
-    width: '28px',
-    height: '28px',
-    borderRadius: '50%',
-    backgroundColor: theme.colors.primary,
-    color: '#fff',
-    fontSize: '18px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  checkmark: {
-    width: '28px',
-    height: '28px',
-    borderRadius: '50%',
-    backgroundColor: theme.colors.success,
-    color: '#fff',
-    fontSize: '14px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
+
+  recipeCuisine: {
+    fontSize: fontSizes.lg
+  }
 }

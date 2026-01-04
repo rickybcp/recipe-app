@@ -1,76 +1,155 @@
-import React, { useState, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useApp } from '../contexts/AppContext'
-import { theme } from '../lib/theme'
-import FilterPanel from './FilterPanel'
+import { colors, fonts, fontSizes, spacing, borderRadius, commonStyles } from '../lib/theme'
 import RecipeCard from './RecipeCard'
 import RecipeForm from './RecipeForm'
+import FilterPanel from './FilterPanel'
+
+const EMPTY_FILTERS = {
+  seasons: [],
+  tags: [],
+  bases: [],
+  cuisines: [],
+  difficulties: []
+}
 
 export default function RecipesPage() {
-  const { t, getFilteredRecipes, filters, setFilters, clearFilters } = useApp()
+  const { t, recipes } = useApp()
+  
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filters, setFilters] = useState(EMPTY_FILTERS)
   const [showForm, setShowForm] = useState(false)
   const [editingRecipe, setEditingRecipe] = useState(null)
-  
-  const filteredRecipes = useMemo(() => getFilteredRecipes(), [getFilteredRecipes])
-  
-  const hasActiveFilters = useMemo(() => {
-    return filters.search || 
-           filters.seasons.length > 0 || 
-           filters.bases.length > 0 ||
-           filters.cuisines.length > 0 ||
-           filters.tags.length > 0 ||
-           filters.difficulties.length > 0
-  }, [filters])
-  
-  const handleEdit = (recipe) => {
+
+  // Filter recipes
+  const filteredRecipes = useMemo(() => {
+    return recipes.filter(recipe => {
+      // Search query
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase()
+        if (!recipe.name.toLowerCase().includes(query)) {
+          return false
+        }
+      }
+
+      // Seasons filter (if not all 4 selected, filter by selected)
+      if (filters.seasons.length > 0 && filters.seasons.length < 4) {
+        const recipeSeasons = recipe.seasons || []
+        const hasMatchingSeason = filters.seasons.some(s => recipeSeasons.includes(s))
+        if (!hasMatchingSeason) {
+          return false
+        }
+      }
+
+      // Tags filter (recipe must have ALL selected tags)
+      if (filters.tags.length > 0) {
+        const recipeTags = recipe.recipe_tags?.map(rt => rt.tag_id) || []
+        const hasAllTags = filters.tags.every(tagId => recipeTags.includes(tagId))
+        if (!hasAllTags) {
+          return false
+        }
+      }
+
+      // Bases filter (recipe must have ONE of selected bases)
+      if (filters.bases.length > 0) {
+        if (!recipe.base_id || !filters.bases.includes(recipe.base_id)) {
+          return false
+        }
+      }
+
+      // Cuisines filter (recipe must have ONE of selected cuisines)
+      if (filters.cuisines.length > 0) {
+        if (!recipe.cuisine_id || !filters.cuisines.includes(recipe.cuisine_id)) {
+          return false
+        }
+      }
+
+      // Difficulty filter
+      if (filters.difficulties.length > 0) {
+        if (!filters.difficulties.includes(recipe.difficulty)) {
+          return false
+        }
+      }
+
+      return true
+    })
+  }, [recipes, searchQuery, filters])
+
+  const handleAddRecipe = () => {
+    setEditingRecipe(null)
+    setShowForm(true)
+  }
+
+  const handleEditRecipe = (recipe) => {
     setEditingRecipe(recipe)
     setShowForm(true)
   }
-  
+
   const handleCloseForm = () => {
     setShowForm(false)
     setEditingRecipe(null)
   }
-  
+
+  const hasActiveFilters = 
+    filters.seasons.length > 0 ||
+    filters.tags.length > 0 ||
+    filters.bases.length > 0 ||
+    filters.cuisines.length > 0 ||
+    filters.difficulties.length > 0
+
   return (
-    <div style={pageStyles.container}>
-      <div style={pageStyles.searchContainer}>
-        <div style={pageStyles.searchWrapper}>
-          <span style={pageStyles.searchIcon}>🔍</span>
-          <input
-            type="text"
-            placeholder={t('search')}
-            value={filters.search}
-            onChange={(e) => setFilters({ search: e.target.value })}
-            style={pageStyles.searchInput}
-          />
-        </div>
-      </div>
-      
-      <FilterPanel />
-      
-      <div style={pageStyles.resultsBar}>
-        <span style={pageStyles.resultsCount}>
-          {t('recipeCount', { count: filteredRecipes.length })}
-        </span>
-        {hasActiveFilters && (
+    <div style={styles.container}>
+      {/* Header */}
+      <header style={styles.header}>
+        <h1 style={styles.title}>{t('recipes.title')}</h1>
+        <button onClick={handleAddRecipe} style={styles.addButton}>
+          + {t('recipes.add')}
+        </button>
+      </header>
+
+      {/* Search */}
+      <div style={styles.searchContainer}>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={t('recipes.search')}
+          style={styles.searchInput}
+        />
+        {searchQuery && (
           <button
-            onClick={clearFilters}
-            style={pageStyles.clearButton}
+            onClick={() => setSearchQuery('')}
+            style={styles.clearSearch}
           >
-            {t('clearFilters')}
+            ✕
           </button>
         )}
       </div>
-      
-      <div style={pageStyles.recipeList}>
+
+      {/* Filters */}
+      <FilterPanel filters={filters} onChange={setFilters} />
+
+      {/* Results count */}
+      {(searchQuery || hasActiveFilters) && (
+        <div style={styles.resultsCount}>
+          {filteredRecipes.length} / {recipes.length} {t('nav.recipes').toLowerCase()}
+        </div>
+      )}
+
+      {/* Recipe list */}
+      <div style={styles.list}>
         {filteredRecipes.length === 0 ? (
-          <div style={pageStyles.emptyState}>
-            <span style={pageStyles.emptyIcon}>📭</span>
-            <p style={pageStyles.emptyTitle}>
-              {hasActiveFilters ? t('noRecipes') : t('noRecipesYet')}
+          <div style={styles.empty}>
+            <p style={styles.emptyText}>
+              {recipes.length === 0 
+                ? t('recipes.empty')
+                : t('recipes.emptyFiltered')
+              }
             </p>
-            {!hasActiveFilters && (
-              <p style={pageStyles.emptySubtitle}>{t('addFirstRecipe')}</p>
+            {recipes.length === 0 && (
+              <button onClick={handleAddRecipe} style={styles.emptyButton}>
+                + {t('recipes.add')}
+              </button>
             )}
           </div>
         ) : (
@@ -78,20 +157,13 @@ export default function RecipesPage() {
             <RecipeCard
               key={recipe.id}
               recipe={recipe}
-              onEdit={() => handleEdit(recipe)}
+              onClick={() => handleEditRecipe(recipe)}
             />
           ))
         )}
       </div>
-      
-      <button
-        onClick={() => setShowForm(true)}
-        style={pageStyles.fab}
-        aria-label={t('addRecipe')}
-      >
-        <span style={pageStyles.fabIcon}>+</span>
-      </button>
-      
+
+      {/* Form modal */}
       {showForm && (
         <RecipeForm
           recipe={editingRecipe}
@@ -102,119 +174,93 @@ export default function RecipesPage() {
   )
 }
 
-const pageStyles = {
+// ============================================
+// STYLES
+// ============================================
+
+const styles = {
   container: {
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100%',
-    position: 'relative',
+    padding: spacing.md,
+    paddingBottom: spacing.xl
   },
-  searchContainer: {
-    padding: '12px 16px',
-    backgroundColor: theme.colors.surface,
-    borderBottom: `1px solid ${theme.colors.borderLight}`,
-  },
-  searchWrapper: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    backgroundColor: theme.colors.backgroundAlt,
-    borderRadius: theme.borderRadius.full,
-    padding: '10px 16px',
-    maxWidth: '600px',
-    margin: '0 auto',
-  },
-  searchIcon: {
-    fontSize: '16px',
-    opacity: 0.6,
-  },
-  searchInput: {
-    flex: 1,
-    border: 'none',
-    background: 'none',
-    fontSize: '15px',
-    color: theme.colors.text,
-    outline: 'none',
-  },
-  resultsBar: {
+
+  header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '10px 16px',
-    backgroundColor: theme.colors.background,
-    maxWidth: '632px',
-    margin: '0 auto',
-    width: '100%',
+    marginBottom: spacing.md
   },
+
+  title: {
+    fontFamily: fonts.heading,
+    fontSize: fontSizes['2xl'],
+    color: colors.forest,
+    margin: 0
+  },
+
+  addButton: {
+    ...commonStyles.buttonBase,
+    ...commonStyles.buttonPrimary,
+    fontSize: fontSizes.sm
+  },
+
+  searchContainer: {
+    position: 'relative',
+    marginBottom: spacing.md
+  },
+
+  searchInput: {
+    ...commonStyles.input,
+    padding: `${spacing.sm} ${spacing.md}`,
+    paddingRight: '40px',
+    fontSize: fontSizes.md
+  },
+
+  clearSearch: {
+    position: 'absolute',
+    right: '12px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    width: '24px',
+    height: '24px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: 'none',
+    backgroundColor: colors.warmGray,
+    borderRadius: borderRadius.full,
+    cursor: 'pointer',
+    fontSize: fontSizes.xs,
+    color: colors.textSecondary
+  },
+
   resultsCount: {
-    fontSize: '13px',
-    color: theme.colors.textSecondary,
-    fontWeight: '500',
+    fontSize: fontSizes.sm,
+    color: colors.textMuted,
+    marginBottom: spacing.sm,
+    textAlign: 'center'
   },
-  clearButton: {
-    fontSize: '13px',
-    color: theme.colors.secondary,
-    background: 'none',
-    border: 'none',
-    fontWeight: '600',
-    cursor: 'pointer',
-    padding: '4px 8px',
-  },
-  recipeList: {
-    flex: 1,
-    overflow: 'auto',
-    padding: '8px 16px 80px 16px',
+
+  list: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '12px',
-    maxWidth: '632px',
-    margin: '0 auto',
-    width: '100%',
+    gap: spacing.md
   },
-  emptyState: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '48px 24px',
+
+  empty: {
     textAlign: 'center',
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xl
   },
-  emptyIcon: {
-    fontSize: '48px',
-    marginBottom: '16px',
+
+  emptyText: {
+    fontSize: fontSizes.md,
+    color: colors.textSecondary,
+    marginBottom: spacing.md
   },
-  emptyTitle: {
-    fontSize: '17px',
-    fontWeight: '600',
-    color: theme.colors.text,
-    margin: '0 0 8px 0',
-  },
-  emptySubtitle: {
-    fontSize: '14px',
-    color: theme.colors.textSecondary,
-    margin: 0,
-  },
-  fab: {
-    position: 'fixed',
-    bottom: '80px',
-    right: '20px',
-    width: '56px',
-    height: '56px',
-    borderRadius: '50%',
-    backgroundColor: theme.colors.secondary,
-    color: theme.colors.textInverse,
-    border: 'none',
-    boxShadow: theme.shadows.lg,
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    transition: theme.transitions.fast,
-    zIndex: 100,
-  },
-  fabIcon: {
-    fontSize: '28px',
-    fontWeight: '300',
-    lineHeight: 1,
-  },
+
+  emptyButton: {
+    ...commonStyles.buttonBase,
+    ...commonStyles.buttonPrimary
+  }
 }
