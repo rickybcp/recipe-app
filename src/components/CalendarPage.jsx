@@ -11,7 +11,6 @@ import {
   subWeeks,
   addMonths,
   subMonths,
-  isSameDay,
   isSameMonth,
   isToday
 } from 'date-fns'
@@ -26,6 +25,7 @@ export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(null)
   const [showMealPicker, setShowMealPicker] = useState(false)
+  const [expandedDay, setExpandedDay] = useState(null) // For month view on mobile
 
   const locale = language === 'fr' ? fr : enUS
 
@@ -61,6 +61,7 @@ export default function CalendarPage() {
     } else {
       setCurrentDate(subMonths(currentDate, 1))
     }
+    setExpandedDay(null)
   }
 
   const goToNext = () => {
@@ -69,10 +70,12 @@ export default function CalendarPage() {
     } else {
       setCurrentDate(addMonths(currentDate, 1))
     }
+    setExpandedDay(null)
   }
 
   const goToToday = () => {
     setCurrentDate(new Date())
+    setExpandedDay(null)
   }
 
   // Get meals for a specific day
@@ -91,6 +94,23 @@ export default function CalendarPage() {
 
   // Handle day click
   const handleDayClick = (day) => {
+    if (viewMode === 'month') {
+      // Toggle expanded day or open picker if already expanded
+      const dayStr = format(day, 'yyyy-MM-dd')
+      if (expandedDay === dayStr) {
+        setSelectedDate(day)
+        setShowMealPicker(true)
+      } else {
+        setExpandedDay(dayStr)
+      }
+    } else {
+      setSelectedDate(day)
+      setShowMealPicker(true)
+    }
+  }
+
+  // Handle add meal from expanded day
+  const handleAddMealFromExpanded = (day) => {
     setSelectedDate(day)
     setShowMealPicker(true)
   }
@@ -126,7 +146,7 @@ export default function CalendarPage() {
       {/* View mode toggle */}
       <div style={styles.viewToggle}>
         <button
-          onClick={() => setViewMode('week')}
+          onClick={() => { setViewMode('week'); setExpandedDay(null) }}
           style={{
             ...styles.viewButton,
             backgroundColor: viewMode === 'week' ? colors.forest : colors.warmGray,
@@ -136,7 +156,7 @@ export default function CalendarPage() {
           {t('calendar.week')}
         </button>
         <button
-          onClick={() => setViewMode('month')}
+          onClick={() => { setViewMode('month'); setExpandedDay(null) }}
           style={{
             ...styles.viewButton,
             backgroundColor: viewMode === 'month' ? colors.forest : colors.warmGray,
@@ -159,70 +179,176 @@ export default function CalendarPage() {
         <button onClick={goToNext} style={styles.navButton}>→</button>
       </div>
 
-      {/* Calendar grid */}
-      <div style={{
-        ...styles.grid,
-        gridTemplateColumns: viewMode === 'week' ? 'repeat(7, 1fr)' : 'repeat(7, 1fr)'
-      }}>
-        {/* Day headers */}
-        {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((day, index) => (
-          <div key={index} style={styles.dayHeader}>
-            {language === 'en' 
-              ? ['M', 'T', 'W', 'T', 'F', 'S', 'S'][index]
-              : day
-            }
-          </div>
-        ))}
+      {/* Calendar content */}
+      {viewMode === 'week' ? (
+        // WEEK VIEW - Vertical list on mobile
+        <div style={styles.weekList}>
+          {days.map(day => {
+            const meals = getMealsForDay(day)
+            const isDayToday = isToday(day)
+            const dayName = format(day, 'EEEE', { locale })
+            const dayNumber = format(day, 'd MMMM', { locale })
 
-        {/* Days */}
-        {days.map(day => {
-          const meals = getMealsForDay(day)
-          const isCurrentMonth = isSameMonth(day, currentDate)
-          const isDayToday = isToday(day)
+            return (
+              <div
+                key={day.toISOString()}
+                style={{
+                  ...styles.weekDay,
+                  ...(isDayToday ? styles.weekDayToday : {})
+                }}
+              >
+                {/* Day header */}
+                <div style={styles.weekDayHeader}>
+                  <div style={styles.weekDayInfo}>
+                    <span style={{
+                      ...styles.weekDayName,
+                      color: isDayToday ? colors.forest : colors.textPrimary
+                    }}>
+                      {dayName}
+                    </span>
+                    <span style={styles.weekDayNumber}>{dayNumber}</span>
+                  </div>
+                  <button
+                    onClick={() => handleDayClick(day)}
+                    style={styles.addMealButton}
+                  >
+                    + {t('calendar.addMeal')}
+                  </button>
+                </div>
 
-          return (
-            <div
-              key={day.toISOString()}
-              onClick={() => handleDayClick(day)}
-              style={{
-                ...styles.dayCell,
-                ...(viewMode === 'month' && !isCurrentMonth ? styles.dayCellOutside : {}),
-                ...(isDayToday ? styles.dayCellToday : {})
-              }}
-            >
-              <div style={styles.dayNumber}>
-                {format(day, 'd')}
+                {/* Meals */}
+                {meals.length > 0 ? (
+                  <div style={styles.weekMeals}>
+                    {meals.map(meal => {
+                      const recipeTags = getRecipeTags(meal.recipe)
+                      return (
+                        <div key={meal.id} style={styles.weekMealItem}>
+                          <div style={styles.weekMealInfo}>
+                            <span style={styles.weekMealName}>
+                              {meal.recipe?.name || '?'}
+                            </span>
+                            {recipeTags.length > 0 && (
+                              <span style={styles.weekMealTags}>
+                                {recipeTags.map(tag => tag.icon).join(' ')}
+                              </span>
+                            )}
+                            {meal.recipe?.cuisine && (
+                              <span style={styles.weekMealCuisine}>
+                                {meal.recipe.cuisine.flag}
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            onClick={(e) => handleDeleteMeal(e, meal.id)}
+                            style={styles.weekMealDelete}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div style={styles.weekNoMeals}>
+                    <span style={styles.weekNoMealsText}>—</span>
+                  </div>
+                )}
               </div>
-              <div style={styles.meals}>
-                {meals.map(meal => {
-                  const recipeTags = getRecipeTags(meal.recipe)
-                  return (
-                    <div key={meal.id} style={styles.mealItem}>
-                      <div style={styles.mealContent}>
-                        <span style={styles.mealName}>
-                          {meal.recipe?.name || '?'}
-                        </span>
-                        {recipeTags.length > 0 && (
-                          <span style={styles.mealTags}>
-                            {recipeTags.slice(0, 2).map(tag => tag.icon).join('')}
-                          </span>
+            )
+          })}
+        </div>
+      ) : (
+        // MONTH VIEW - Compact grid
+        <div style={styles.monthContainer}>
+          {/* Day headers */}
+          <div style={styles.monthHeaders}>
+            {(language === 'fr' 
+              ? ['L', 'M', 'M', 'J', 'V', 'S', 'D']
+              : ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+            ).map((day, index) => (
+              <div key={index} style={styles.monthHeader}>
+                {day}
+              </div>
+            ))}
+          </div>
+
+          {/* Days grid */}
+          <div style={styles.monthGrid}>
+            {days.map(day => {
+              const meals = getMealsForDay(day)
+              const isCurrentMonth = isSameMonth(day, currentDate)
+              const isDayToday = isToday(day)
+              const dayStr = format(day, 'yyyy-MM-dd')
+              const isExpanded = expandedDay === dayStr
+
+              return (
+                <div key={day.toISOString()}>
+                  <div
+                    onClick={() => handleDayClick(day)}
+                    style={{
+                      ...styles.monthDay,
+                      ...(isCurrentMonth ? {} : styles.monthDayOutside),
+                      ...(isDayToday ? styles.monthDayToday : {}),
+                      ...(isExpanded ? styles.monthDayExpanded : {})
+                    }}
+                  >
+                    <span style={styles.monthDayNumber}>{format(day, 'd')}</span>
+                    {meals.length > 0 && (
+                      <div style={styles.monthDots}>
+                        {meals.slice(0, 3).map((_, idx) => (
+                          <span key={idx} style={styles.monthDot} />
+                        ))}
+                        {meals.length > 3 && (
+                          <span style={styles.monthDotMore}>+</span>
                         )}
                       </div>
-                      <button
-                        onClick={(e) => handleDeleteMeal(e, meal.id)}
-                        style={styles.mealDelete}
-                      >
-                        ✕
-                      </button>
+                    )}
+                  </div>
+
+                  {/* Expanded day details */}
+                  {isExpanded && (
+                    <div style={styles.expandedDay}>
+                      <div style={styles.expandedHeader}>
+                        <span style={styles.expandedDate}>
+                          {format(day, 'EEEE d MMMM', { locale })}
+                        </span>
+                        <button
+                          onClick={() => handleAddMealFromExpanded(day)}
+                          style={styles.expandedAddButton}
+                        >
+                          +
+                        </button>
+                      </div>
+                      {meals.length > 0 ? (
+                        <div style={styles.expandedMeals}>
+                          {meals.map(meal => {
+                            const recipeTags = getRecipeTags(meal.recipe)
+                            return (
+                              <div key={meal.id} style={styles.expandedMealItem}>
+                                <span style={styles.expandedMealName}>
+                                  {recipeTags.map(tag => tag.icon).join('')} {meal.recipe?.name || '?'}
+                                </span>
+                                <button
+                                  onClick={(e) => handleDeleteMeal(e, meal.id)}
+                                  style={styles.expandedMealDelete}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <p style={styles.expandedNoMeals}>{t('recipes.empty')}</p>
+                      )}
                     </div>
-                  )
-                })}
-              </div>
-              <div style={styles.addMeal}>+</div>
-            </div>
-          )
-        })}
-      </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Meal picker modal */}
       {showMealPicker && selectedDate && (
@@ -320,73 +446,87 @@ const styles = {
     fontFamily: fonts.body
   },
 
-  grid: {
-    display: 'grid',
-    gap: '1px',
-    backgroundColor: colors.warmGray,
+  // ==================
+  // WEEK VIEW STYLES
+  // ==================
+  weekList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing.sm
+  },
+
+  weekDay: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    boxShadow: shadows.sm
+  },
+
+  weekDayToday: {
+    borderLeft: `4px solid ${colors.forest}`
+  },
+
+  weekDayHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm
+  },
+
+  weekDayInfo: {
+    display: 'flex',
+    flexDirection: 'column'
+  },
+
+  weekDayName: {
+    fontSize: fontSizes.md,
+    fontWeight: 600,
+    textTransform: 'capitalize'
+  },
+
+  weekDayNumber: {
+    fontSize: fontSizes.sm,
+    color: colors.textMuted,
+    textTransform: 'capitalize'
+  },
+
+  addMealButton: {
+    padding: `${spacing.xs} ${spacing.sm}`,
+    backgroundColor: colors.forest,
+    color: colors.white,
+    border: 'none',
     borderRadius: borderRadius.md,
+    fontSize: fontSizes.xs,
+    fontFamily: fonts.body,
+    fontWeight: 600,
+    cursor: 'pointer'
+  },
+
+  weekMeals: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing.xs
+  },
+
+  weekMealItem: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.sm,
+    backgroundColor: colors.forest + '10',
+    borderRadius: borderRadius.md
+  },
+
+  weekMealInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flex: 1,
     overflow: 'hidden'
   },
 
-  dayHeader: {
-    backgroundColor: colors.forest,
-    color: colors.white,
-    padding: spacing.sm,
-    textAlign: 'center',
-    fontSize: fontSizes.xs,
-    fontWeight: 600
-  },
-
-  dayCell: {
-    backgroundColor: colors.white,
-    minHeight: '100px',
-    padding: spacing.xs,
-    cursor: 'pointer',
-    position: 'relative',
-    transition: 'background-color 0.2s ease'
-  },
-
-  dayCellOutside: {
-    backgroundColor: colors.cream,
-    opacity: 0.6
-  },
-
-  dayCellToday: {
-    backgroundColor: colors.successLight
-  },
-
-  dayNumber: {
-    fontSize: fontSizes.sm,
-    fontWeight: 600,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs
-  },
-
-  meals: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px'
-  },
-
-  mealItem: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.forest + '15',
-    borderRadius: borderRadius.sm,
-    padding: '2px 4px',
-    fontSize: fontSizes.xs
-  },
-
-  mealContent: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
-    overflow: 'hidden',
-    flex: 1
-  },
-
-  mealName: {
+  weekMealName: {
+    fontSize: fontSizes.md,
     color: colors.forest,
     fontWeight: 500,
     overflow: 'hidden',
@@ -394,38 +534,198 @@ const styles = {
     whiteSpace: 'nowrap'
   },
 
-  mealTags: {
-    fontSize: '10px',
+  weekMealTags: {
+    fontSize: fontSizes.sm,
     flexShrink: 0
   },
 
-  mealDelete: {
-    width: '16px',
-    height: '16px',
+  weekMealCuisine: {
+    fontSize: fontSizes.sm,
+    flexShrink: 0
+  },
+
+  weekMealDelete: {
+    width: '28px',
+    height: '28px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: 'none',
+    backgroundColor: colors.white,
+    color: colors.textMuted,
+    fontSize: fontSizes.sm,
+    cursor: 'pointer',
+    borderRadius: borderRadius.full,
+    flexShrink: 0
+  },
+
+  weekNoMeals: {
+    padding: spacing.sm,
+    textAlign: 'center'
+  },
+
+  weekNoMealsText: {
+    color: colors.textMuted,
+    fontSize: fontSizes.sm
+  },
+
+  // ==================
+  // MONTH VIEW STYLES
+  // ==================
+  monthContainer: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    boxShadow: shadows.sm
+  },
+
+  monthHeaders: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(7, 1fr)',
+    backgroundColor: colors.forest
+  },
+
+  monthHeader: {
+    padding: spacing.sm,
+    textAlign: 'center',
+    color: colors.white,
+    fontSize: fontSizes.xs,
+    fontWeight: 600
+  },
+
+  monthGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(7, 1fr)',
+    gap: '1px',
+    backgroundColor: colors.warmGray
+  },
+
+  monthDay: {
+    backgroundColor: colors.white,
+    padding: spacing.xs,
+    minHeight: '50px',
+    cursor: 'pointer',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '4px',
+    transition: 'background-color 0.2s ease'
+  },
+
+  monthDayOutside: {
+    backgroundColor: colors.cream,
+    opacity: 0.5
+  },
+
+  monthDayToday: {
+    backgroundColor: colors.successLight
+  },
+
+  monthDayExpanded: {
+    backgroundColor: colors.forest + '15'
+  },
+
+  monthDayNumber: {
+    fontSize: fontSizes.sm,
+    fontWeight: 600,
+    color: colors.textPrimary
+  },
+
+  monthDots: {
+    display: 'flex',
+    gap: '3px',
+    alignItems: 'center'
+  },
+
+  monthDot: {
+    width: '6px',
+    height: '6px',
+    borderRadius: '50%',
+    backgroundColor: colors.forest
+  },
+
+  monthDotMore: {
+    fontSize: '10px',
+    color: colors.forest,
+    fontWeight: 600
+  },
+
+  // Expanded day in month view
+  expandedDay: {
+    gridColumn: '1 / -1',
+    backgroundColor: colors.cream,
+    padding: spacing.md,
+    borderTop: `1px solid ${colors.warmGray}`
+  },
+
+  expandedHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm
+  },
+
+  expandedDate: {
+    fontSize: fontSizes.sm,
+    fontWeight: 600,
+    color: colors.textPrimary,
+    textTransform: 'capitalize'
+  },
+
+  expandedAddButton: {
+    width: '28px',
+    height: '28px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.forest,
+    color: colors.white,
+    border: 'none',
+    borderRadius: borderRadius.full,
+    fontSize: fontSizes.md,
+    cursor: 'pointer'
+  },
+
+  expandedMeals: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing.xs
+  },
+
+  expandedMealItem: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.sm,
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.md
+  },
+
+  expandedMealName: {
+    fontSize: fontSizes.sm,
+    color: colors.forest,
+    fontWeight: 500
+  },
+
+  expandedMealDelete: {
+    width: '24px',
+    height: '24px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     border: 'none',
     backgroundColor: 'transparent',
     color: colors.textMuted,
-    fontSize: '10px',
+    fontSize: fontSizes.xs,
     cursor: 'pointer',
-    borderRadius: borderRadius.full,
-    flexShrink: 0
+    borderRadius: borderRadius.full
   },
 
-  addMeal: {
-    position: 'absolute',
-    bottom: '4px',
-    right: '4px',
-    width: '20px',
-    height: '20px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.warmGray,
-    borderRadius: borderRadius.full,
+  expandedNoMeals: {
     fontSize: fontSizes.sm,
-    color: colors.textMuted
+    color: colors.textMuted,
+    margin: 0,
+    textAlign: 'center',
+    padding: spacing.sm
   }
 }
