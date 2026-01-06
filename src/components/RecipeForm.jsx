@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useApp } from '../contexts/AppContext'
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, commonStyles, getSeasonColor } from '../lib/theme'
-import { SEASONS, DIFFICULTIES, getSeasonEmoji } from '../lib/i18n'
+import { SEASONS, DIFFICULTIES, MEAL_TYPES, PRICE_RANGES, getSeasonEmoji, getMealTypeEmoji, getPriceRangeSymbol } from '../lib/i18n'
 
 export default function RecipeForm({ recipe, onClose }) {
   const { 
-    t, getName, language,
+    t, getName,
     tags, bases, cuisines,
     createRecipe, updateRecipe, deleteRecipe,
     recipes
@@ -22,6 +22,8 @@ export default function RecipeForm({ recipe, onClose }) {
   const [baseId, setBaseId] = useState(recipe?.base_id || '')
   const [cuisineId, setCuisineId] = useState(recipe?.cuisine_id || '')
   const [difficulty, setDifficulty] = useState(recipe?.difficulty || 'medium')
+  const [mealType, setMealType] = useState(recipe?.meal_type || 'main')
+  const [priceRange, setPriceRange] = useState(recipe?.price_range || 'medium')
   const [prepTime, setPrepTime] = useState(recipe?.prep_time_minutes?.toString() || '')
   const [notes, setNotes] = useState(recipe?.notes || '')
 
@@ -68,6 +70,8 @@ export default function RecipeForm({ recipe, onClose }) {
       base_id: baseId || null,
       cuisine_id: cuisineId || null,
       difficulty,
+      meal_type: mealType,
+      price_range: priceRange,
       prep_time_minutes: prepTime ? parseInt(prepTime, 10) : null,
       notes: notes.trim() || null
     }
@@ -133,6 +137,34 @@ export default function RecipeForm({ recipe, onClose }) {
             {isDuplicate && (
               <span style={styles.errorText}>{t('recipe.name.duplicate')}</span>
             )}
+          </div>
+
+          {/* Meal Type */}
+          <div style={styles.field}>
+            <label style={commonStyles.label}>{t('recipe.mealType')}</label>
+            <div style={styles.chipGroup}>
+              {MEAL_TYPES.map(type => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setMealType(type)}
+                  style={{
+                    ...styles.chip,
+                    backgroundColor: mealType === type
+                      ? colors.terracotta + '25'
+                      : colors.warmGray,
+                    color: mealType === type
+                      ? colors.terracotta
+                      : colors.textSecondary,
+                    borderColor: mealType === type
+                      ? colors.terracotta
+                      : 'transparent'
+                  }}
+                >
+                  {getMealTypeEmoji(type)} {t(`mealType.${type}`)}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Seasons */}
@@ -225,23 +257,62 @@ export default function RecipeForm({ recipe, onClose }) {
             </select>
           </div>
 
-          {/* Difficulty */}
-          <div style={styles.field}>
-            <label style={commonStyles.label}>{t('recipe.difficulty')}</label>
-            <div style={styles.radioGroup}>
-              {DIFFICULTIES.map(diff => (
-                <label key={diff} style={styles.radioLabel}>
-                  <input
-                    type="radio"
-                    name="difficulty"
-                    value={diff}
-                    checked={difficulty === diff}
-                    onChange={(e) => setDifficulty(e.target.value)}
-                    style={styles.radio}
-                  />
-                  {t(`difficulty.${diff}`)}
-                </label>
-              ))}
+          {/* Difficulty & Price Row */}
+          <div style={styles.rowFields}>
+            {/* Difficulty */}
+            <div style={styles.halfField}>
+              <label style={commonStyles.label}>{t('recipe.difficulty')}</label>
+              <div style={styles.chipGroupVertical}>
+                {DIFFICULTIES.map(diff => (
+                  <button
+                    key={diff}
+                    type="button"
+                    onClick={() => setDifficulty(diff)}
+                    style={{
+                      ...styles.chipSmall,
+                      backgroundColor: difficulty === diff
+                        ? colors.forest + '20'
+                        : colors.warmGray,
+                      color: difficulty === diff
+                        ? colors.forest
+                        : colors.textSecondary,
+                      borderColor: difficulty === diff
+                        ? colors.forest
+                        : 'transparent'
+                    }}
+                  >
+                    {t(`difficulty.${diff}`)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Price Range */}
+            <div style={styles.halfField}>
+              <label style={commonStyles.label}>{t('recipe.priceRange')}</label>
+              <div style={styles.chipGroupVertical}>
+                {PRICE_RANGES.map(price => (
+                  <button
+                    key={price}
+                    type="button"
+                    onClick={() => setPriceRange(price)}
+                    style={{
+                      ...styles.chipSmall,
+                      backgroundColor: priceRange === price
+                        ? colors.gold + '30'
+                        : colors.warmGray,
+                      color: priceRange === price
+                        ? colors.gold
+                        : colors.textSecondary,
+                      borderColor: priceRange === price
+                        ? colors.gold
+                        : 'transparent'
+                    }}
+                  >
+                    {getPriceRangeSymbol(price)} {t(`priceRange.${price}`)}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -391,6 +462,17 @@ const styles = {
     flexDirection: 'column'
   },
 
+  rowFields: {
+    display: 'flex',
+    gap: spacing.md
+  },
+
+  halfField: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column'
+  },
+
   input: {
     ...commonStyles.input,
     padding: spacing.sm
@@ -415,6 +497,12 @@ const styles = {
     gap: spacing.xs
   },
 
+  chipGroupVertical: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: spacing.xs
+  },
+
   chip: {
     padding: `${spacing.xs} ${spacing.sm}`,
     borderRadius: borderRadius.full,
@@ -425,22 +513,15 @@ const styles = {
     transition: 'all 0.2s ease'
   },
 
-  radioGroup: {
-    display: 'flex',
-    gap: spacing.md
-  },
-
-  radioLabel: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: spacing.xs,
+  chipSmall: {
+    padding: `${spacing.xs} ${spacing.sm}`,
+    borderRadius: borderRadius.md,
+    border: '2px solid transparent',
     fontSize: fontSizes.sm,
-    color: colors.textPrimary,
-    cursor: 'pointer'
-  },
-
-  radio: {
-    cursor: 'pointer'
+    fontFamily: fonts.body,
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    textAlign: 'left'
   },
 
   errorText: {

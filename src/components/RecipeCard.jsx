@@ -1,6 +1,6 @@
 import { useApp } from '../contexts/AppContext'
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, getSeasonColor, getDifficultyColor } from '../lib/theme'
-import { getSeasonEmoji } from '../lib/i18n'
+import { getSeasonEmoji, getMealTypeEmoji, getPriceRangeSymbol } from '../lib/i18n'
 
 export default function RecipeCard({ recipe, onClick }) {
   const { t, getName, tags } = useApp()
@@ -12,18 +12,30 @@ export default function RecipeCard({ recipe, onClick }) {
 
   return (
     <div style={styles.card} onClick={onClick}>
-      {/* Header with name and difficulty */}
+      {/* Header with name and badges */}
       <div style={styles.header}>
-        <h3 style={styles.name}>{recipe.name}</h3>
-        {recipe.difficulty && (
-          <span style={{
-            ...styles.difficulty,
-            backgroundColor: getDifficultyColor(recipe.difficulty) + '20',
-            color: getDifficultyColor(recipe.difficulty)
-          }}>
-            {t(`difficulty.${recipe.difficulty}`)}
+        <div style={styles.titleRow}>
+          <span style={styles.mealTypeEmoji}>
+            {getMealTypeEmoji(recipe.meal_type)}
           </span>
-        )}
+          <h3 style={styles.name}>{recipe.name}</h3>
+        </div>
+        <div style={styles.badges}>
+          {recipe.price_range && (
+            <span style={styles.priceBadge}>
+              {getPriceRangeSymbol(recipe.price_range)}
+            </span>
+          )}
+          {recipe.difficulty && (
+            <span style={{
+              ...styles.badge,
+              backgroundColor: getDifficultyColor(recipe.difficulty) + '20',
+              color: getDifficultyColor(recipe.difficulty)
+            }}>
+              {t(`difficulty.${recipe.difficulty}`)}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Meta info row */}
@@ -46,6 +58,13 @@ export default function RecipeCard({ recipe, onClick }) {
         {recipe.base && (
           <span style={styles.metaItem}>
             🍚 {getName(recipe.base)}
+          </span>
+        )}
+
+        {/* Meal type if not main */}
+        {recipe.meal_type && recipe.meal_type !== 'main' && (
+          <span style={styles.metaItem}>
+            {t(`mealType.${recipe.meal_type}`)}
           </span>
         )}
       </div>
@@ -114,6 +133,17 @@ const styles = {
     marginBottom: spacing.sm
   },
 
+  titleRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flex: 1
+  },
+
+  mealTypeEmoji: {
+    fontSize: fontSizes.lg
+  },
+
   name: {
     fontFamily: fonts.heading,
     fontSize: fontSizes.lg,
@@ -123,12 +153,27 @@ const styles = {
     flex: 1
   },
 
-  difficulty: {
+  badges: {
+    display: 'flex',
+    gap: spacing.xs,
+    flexShrink: 0
+  },
+
+  badge: {
     fontSize: fontSizes.xs,
     fontWeight: 600,
     padding: `2px ${spacing.sm}`,
     borderRadius: borderRadius.full,
     whiteSpace: 'nowrap'
+  },
+
+  priceBadge: {
+    fontSize: fontSizes.xs,
+    fontWeight: 700,
+    padding: `2px ${spacing.sm}`,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.gold + '25',
+    color: colors.gold
   },
 
   meta: {

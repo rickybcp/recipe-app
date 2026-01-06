@@ -52,6 +52,8 @@ const translations = {
       'recipe.prepTime.placeholder': 'En minutes',
       'recipe.notes': 'Notes',
       'recipe.notes.placeholder': 'Instructions, astuces, etc.',
+      'recipe.mealType': 'Type de plat',
+      'recipe.priceRange': 'Budget',
       'recipe.save': 'Enregistrer',
       'recipe.cancel': 'Annuler',
       'recipe.delete': 'Supprimer',
@@ -67,6 +69,18 @@ const translations = {
       'difficulty.easy': 'Facile',
       'difficulty.medium': 'Moyen',
       'difficulty.hard': 'Difficile',
+  
+      // Meal types
+      'mealType.appetizer': 'Apéritif',
+      'mealType.starter': 'Entrée',
+      'mealType.main': 'Plat principal',
+      'mealType.side': 'Accompagnement',
+      'mealType.dessert': 'Dessert',
+  
+      // Price range
+      'priceRange.cheap': 'Économique',
+      'priceRange.medium': 'Moyen',
+      'priceRange.expensive': 'Cher',
   
       // Calendar
       'calendar.title': 'Planning des repas',
@@ -158,6 +172,8 @@ const translations = {
       'recipe.prepTime.placeholder': 'In minutes',
       'recipe.notes': 'Notes',
       'recipe.notes.placeholder': 'Instructions, tips, etc.',
+      'recipe.mealType': 'Meal type',
+      'recipe.priceRange': 'Budget',
       'recipe.save': 'Save',
       'recipe.cancel': 'Cancel',
       'recipe.delete': 'Delete',
@@ -173,6 +189,18 @@ const translations = {
       'difficulty.easy': 'Easy',
       'difficulty.medium': 'Medium',
       'difficulty.hard': 'Hard',
+  
+      // Meal types
+      'mealType.appetizer': 'Appetizer',
+      'mealType.starter': 'Starter',
+      'mealType.main': 'Main course',
+      'mealType.side': 'Side dish',
+      'mealType.dessert': 'Dessert',
+  
+      // Price range
+      'priceRange.cheap': 'Budget',
+      'priceRange.medium': 'Medium',
+      'priceRange.expensive': 'Expensive',
   
       // Calendar
       'calendar.title': 'Meal planning',
@@ -264,3 +292,35 @@ const translations = {
   // ============================================
   
   export const DIFFICULTIES = ['easy', 'medium', 'hard']
+  
+  // ============================================
+  // MEAL TYPE HELPERS
+  // ============================================
+  
+  export const MEAL_TYPES = ['appetizer', 'starter', 'main', 'side', 'dessert']
+  
+  export function getMealTypeEmoji(mealType) {
+    const emojis = {
+      appetizer: '🥂',
+      starter: '🥗',
+      main: '🍽️',
+      side: '🥔',
+      dessert: '🍰'
+    }
+    return emojis[mealType] || '🍽️'
+  }
+  
+  // ============================================
+  // PRICE RANGE HELPERS
+  // ============================================
+  
+  export const PRICE_RANGES = ['cheap', 'medium', 'expensive']
+  
+  export function getPriceRangeSymbol(priceRange) {
+    const symbols = {
+      cheap: '€',
+      medium: '€€',
+      expensive: '€€€'
+    }
+    return symbols[priceRange] || '€€'
+  }

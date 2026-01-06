@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useApp } from '../contexts/AppContext'
 import { colors, fonts, fontSizes, spacing, borderRadius, getSeasonColor } from '../lib/theme'
-import { SEASONS, DIFFICULTIES, getSeasonEmoji } from '../lib/i18n'
+import { SEASONS, DIFFICULTIES, MEAL_TYPES, PRICE_RANGES, getSeasonEmoji, getMealTypeEmoji, getPriceRangeSymbol } from '../lib/i18n'
 
 export default function FilterPanel({ filters, onChange }) {
   const { t, getName, tags, bases, cuisines } = useApp()
@@ -12,7 +12,9 @@ export default function FilterPanel({ filters, onChange }) {
     filters.tags.length > 0 ||
     filters.bases.length > 0 ||
     filters.cuisines.length > 0 ||
-    filters.difficulties.length > 0
+    filters.difficulties.length > 0 ||
+    filters.mealTypes.length > 0 ||
+    filters.priceRanges.length > 0
 
   const handleSeasonToggle = (season) => {
     const newSeasons = filters.seasons.includes(season)
@@ -49,13 +51,29 @@ export default function FilterPanel({ filters, onChange }) {
     onChange({ ...filters, difficulties: newDifficulties })
   }
 
+  const handleMealTypeToggle = (mealType) => {
+    const newMealTypes = filters.mealTypes.includes(mealType)
+      ? filters.mealTypes.filter(m => m !== mealType)
+      : [...filters.mealTypes, mealType]
+    onChange({ ...filters, mealTypes: newMealTypes })
+  }
+
+  const handlePriceRangeToggle = (priceRange) => {
+    const newPriceRanges = filters.priceRanges.includes(priceRange)
+      ? filters.priceRanges.filter(p => p !== priceRange)
+      : [...filters.priceRanges, priceRange]
+    onChange({ ...filters, priceRanges: newPriceRanges })
+  }
+
   const clearFilters = () => {
     onChange({
       seasons: [],
       tags: [],
       bases: [],
       cuisines: [],
-      difficulties: []
+      difficulties: [],
+      mealTypes: [],
+      priceRanges: []
     })
   }
 
@@ -83,6 +101,62 @@ export default function FilterPanel({ filters, onChange }) {
       {/* Expandable panel */}
       {isExpanded && (
         <div style={styles.panel}>
+          {/* Meal Types */}
+          <div style={styles.section}>
+            <label style={styles.sectionLabel}>{t('recipe.mealType')}</label>
+            <div style={styles.chipGroup}>
+              {MEAL_TYPES.map(type => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => handleMealTypeToggle(type)}
+                  style={{
+                    ...styles.chip,
+                    backgroundColor: filters.mealTypes.includes(type)
+                      ? colors.terracotta + '25'
+                      : colors.white,
+                    color: filters.mealTypes.includes(type)
+                      ? colors.terracotta
+                      : colors.textSecondary,
+                    borderColor: filters.mealTypes.includes(type)
+                      ? colors.terracotta
+                      : colors.warmGrayDark
+                  }}
+                >
+                  {getMealTypeEmoji(type)} {t(`mealType.${type}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Price Range */}
+          <div style={styles.section}>
+            <label style={styles.sectionLabel}>{t('recipe.priceRange')}</label>
+            <div style={styles.chipGroup}>
+              {PRICE_RANGES.map(price => (
+                <button
+                  key={price}
+                  type="button"
+                  onClick={() => handlePriceRangeToggle(price)}
+                  style={{
+                    ...styles.chip,
+                    backgroundColor: filters.priceRanges.includes(price)
+                      ? colors.gold + '30'
+                      : colors.white,
+                    color: filters.priceRanges.includes(price)
+                      ? colors.gold
+                      : colors.textSecondary,
+                    borderColor: filters.priceRanges.includes(price)
+                      ? colors.gold
+                      : colors.warmGrayDark
+                  }}
+                >
+                  {getPriceRangeSymbol(price)} {t(`priceRange.${price}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Seasons */}
           <div style={styles.section}>
             <label style={styles.sectionLabel}>{t('recipe.seasons')}</label>

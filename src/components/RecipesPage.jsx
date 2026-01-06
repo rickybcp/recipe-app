@@ -10,7 +10,9 @@ const EMPTY_FILTERS = {
   tags: [],
   bases: [],
   cuisines: [],
-  difficulties: []
+  difficulties: [],
+  mealTypes: [],
+  priceRanges: []
 }
 
 export default function RecipesPage() {
@@ -71,6 +73,20 @@ export default function RecipesPage() {
         }
       }
 
+      // Meal type filter
+      if (filters.mealTypes.length > 0) {
+        if (!filters.mealTypes.includes(recipe.meal_type || 'main')) {
+          return false
+        }
+      }
+
+      // Price range filter
+      if (filters.priceRanges.length > 0) {
+        if (!filters.priceRanges.includes(recipe.price_range || 'medium')) {
+          return false
+        }
+      }
+
       return true
     })
   }, [recipes, searchQuery, filters])
@@ -95,7 +111,9 @@ export default function RecipesPage() {
     filters.tags.length > 0 ||
     filters.bases.length > 0 ||
     filters.cuisines.length > 0 ||
-    filters.difficulties.length > 0
+    filters.difficulties.length > 0 ||
+    filters.mealTypes.length > 0 ||
+    filters.priceRanges.length > 0
 
   return (
     <div style={styles.container}>
