@@ -3,6 +3,43 @@ import { useApp } from '../contexts/AppContext'
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, commonStyles } from '../lib/theme'
 import ShoppingListGenerator from './ShoppingListGenerator'
 
+// Helper: Parse quantity to number
+function parseQuantity(str) {
+  if (!str || str.trim() === '') return null
+  const cleaned = str.trim().replace(',', '.')
+  const num = parseFloat(cleaned)
+  return isNaN(num) ? null : num
+}
+
+// Helper: Add quantity
+function addToQuantity(currentQty, currentUnit, addQty) {
+  const currentNum = parseQuantity(currentQty)
+  const addNum = parseQuantity(addQty)
+  
+  // Both numeric - just add
+  if (currentNum !== null && addNum !== null) {
+    const total = currentNum + addNum
+    const formatted = total % 1 === 0 ? total.toString() : total.toFixed(1)
+    return { quantity: formatted, unit: currentUnit }
+  }
+  
+  // Current is numeric, add is a number
+  if (currentNum !== null) {
+    const total = currentNum + (addNum || 1)
+    const formatted = total % 1 === 0 ? total.toString() : total.toFixed(1)
+    return { quantity: formatted, unit: currentUnit }
+  }
+  
+  // Current exists but not numeric - append
+  if (currentQty) {
+    const addPart = addQty || '1'
+    return { quantity: `${currentQty} + ${addPart}`, unit: null }
+  }
+  
+  // No current quantity - use add value or 1
+  return { quantity: addQty || '1', unit: currentUnit }
+}
+
 export default function ShoppingListPage() {
   const { 
     t, getName, language,
@@ -21,11 +58,19 @@ export default function ShoppingListPage() {
   const uncheckedItems = shoppingItems.filter(item => !item.checked)
   const checkedItems = shoppingItems.filter(item => item.checked)
 
-  // Filter available ingredients
-  const filteredIngredients = ingredients.filter(ing =>
-    ing.name_fr.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    ing.name_en.toLowerCase().includes(searchQuery.toLowerCase())
+  // Get existing ingredient IDs (for showing "already in list" indicator)
+  const existingIngredientIds = new Set(
+    shoppingItems
+      .filter(item => item.ingredient_id && !item.checked)
+      .map(item => item.ingredient_id)
   )
+
+  // Filter ingredients by search query (don't exclude existing ones)
+  const filteredIngredients = ingredients
+    .filter(ing =>
+      ing.name_fr.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ing.name_en.toLowerCase().includes(searchQuery.toLowerCase())
+    )
 
   // Toggle item checked
   const handleToggleItem = async (item) => {
@@ -45,16 +90,37 @@ export default function ShoppingListPage() {
     }
   }
 
-  // Add ingredient from list
+  // Add ingredient from list (or increment if exists)
   const handleAddIngredient = async (ingredient) => {
     try {
-      await createShoppingItem({
-        ingredient_id: ingredient.id,
-        quantity: '',
-        unit: ''
-      })
+      // Check if ingredient already exists in unchecked list
+      const existingItem = shoppingItems.find(
+        item => item.ingredient_id === ingredient.id && !item.checked
+      )
+      
+      if (existingItem) {
+        // Increment the quantity by 1
+        const updated = addToQuantity(existingItem.quantity, existingItem.unit, '1')
+        await updateShoppingItem(existingItem.id, {
+          quantity: updated.quantity,
+          unit: updated.unit
+        })
+        setNotification(language === 'fr' 
+          ? `${getName(ingredient)} +1`
+          : `${getName(ingredient)} +1`)
+      } else {
+        // Create new item with quantity 1
+        await createShoppingItem({
+          ingredient_id: ingredient.id,
+          quantity: '1',
+          unit: null,
+          count: 1
+        })
+      }
+      
       setSearchQuery('')
       setShowAddForm(false)
+      setTimeout(() => setNotification(null), 2000)
     } catch (error) {
       console.error('Add ingredient error:', error)
     }
@@ -66,8 +132,9 @@ export default function ShoppingListPage() {
     try {
       await createShoppingItem({
         custom_name: customItem.trim(),
-        quantity: '',
-        unit: ''
+        quantity: '1',
+        unit: null,
+        count: 1
       })
       setCustomItem('')
       setShowAddForm(false)
@@ -81,6 +148,10 @@ export default function ShoppingListPage() {
     if (checkedItems.length === 0) return
     try {
       await deleteCheckedShoppingItems()
+      setNotification(language === 'fr' 
+        ? `${checkedItems.length} article(s) supprimé(s)`
+        : `${checkedItems.length} item(s) removed`)
+      setTimeout(() => setNotification(null), 2000)
     } catch (error) {
       console.error('Clear checked error:', error)
     }
@@ -110,6 +181,16 @@ export default function ShoppingListPage() {
     return '?'
   }
 
+  // Get item display with quantity
+  const getItemDetails = (item) => {
+    if (!item.quantity) return null
+    
+    if (item.unit) {
+      return `${item.quantity} ${item.unit}`
+    }
+    return item.quantity
+  }
+
   return (
     <div style={styles.container}>
       {/* Header */}
@@ -119,6 +200,7 @@ export default function ShoppingListPage() {
           <button
             onClick={() => setShowGenerator(true)}
             style={styles.generateButton}
+            title={t('shopping.generate')}
           >
             📅
           </button>
@@ -133,26 +215,26 @@ export default function ShoppingListPage() {
       )}
 
       {/* Actions bar */}
-      {shoppingItems.length > 0 && (
-        <div style={styles.actionsBar}>
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            style={styles.addButton}
-          >
-            + {t('shopping.addItem')}
-          </button>
-          <div style={styles.actionsRight}>
-            {checkedItems.length > 0 && (
-              <button onClick={handleClearChecked} style={styles.clearButton}>
-                {t('shopping.clearChecked')}
-              </button>
-            )}
-            <button onClick={handleClearAll} style={styles.clearAllButton}>
-              🗑️
+      <div style={styles.actionsBar}>
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          style={styles.addButton}
+        >
+          + {t('shopping.addItem')}
+        </button>
+        <div style={styles.actionsRight}>
+          {checkedItems.length > 0 && (
+            <button onClick={handleClearChecked} style={styles.clearCheckedButton}>
+              🗑️ {t('shopping.clearChecked')} ({checkedItems.length})
             </button>
-          </div>
+          )}
+          {shoppingItems.length > 0 && (
+            <button onClick={handleClearAll} style={styles.clearAllButton}>
+              {t('shopping.clearAll')}
+            </button>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Add form */}
       {showAddForm && (
@@ -168,15 +250,26 @@ export default function ShoppingListPage() {
           
           {searchQuery && (
             <div style={styles.suggestions}>
-              {filteredIngredients.slice(0, 5).map(ing => (
-                <button
-                  key={ing.id}
-                  onClick={() => handleAddIngredient(ing)}
-                  style={styles.suggestionItem}
-                >
-                  {getName(ing)}
-                </button>
-              ))}
+              {filteredIngredients.slice(0, 8).map(ing => {
+                const isInList = existingIngredientIds.has(ing.id)
+                return (
+                  <button
+                    key={ing.id}
+                    onClick={() => handleAddIngredient(ing)}
+                    style={{
+                      ...styles.suggestionItem,
+                      backgroundColor: isInList ? colors.forest + '08' : 'transparent'
+                    }}
+                  >
+                    <span>{getName(ing)}</span>
+                    {isInList && (
+                      <span style={styles.inListBadge}>
+                        {language === 'fr' ? '+1' : '+1'}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
               <button
                 onClick={() => {
                   setCustomItem(searchQuery)
@@ -184,7 +277,7 @@ export default function ShoppingListPage() {
                 }}
                 style={styles.customItemButton}
               >
-                + "{searchQuery}" ({t('shopping.customItem').replace('...', '')})
+                + "{searchQuery}" ({language === 'fr' ? 'article personnalisé' : 'custom item'})
               </button>
             </div>
           )}
@@ -195,11 +288,18 @@ export default function ShoppingListPage() {
                 type="text"
                 value={customItem}
                 onChange={(e) => setCustomItem(e.target.value)}
+                placeholder={t('shopping.customItem')}
                 style={styles.customInput}
                 autoFocus
               />
               <button onClick={handleAddCustomItem} style={styles.customAddButton}>
                 +
+              </button>
+              <button 
+                onClick={() => setCustomItem('')} 
+                style={styles.customCancelButton}
+              >
+                ✕
               </button>
             </div>
           )}
@@ -226,38 +326,46 @@ export default function ShoppingListPage() {
         </div>
       ) : (
         <div style={styles.list}>
+          {/* Stats */}
+          <div style={styles.stats}>
+            <span style={styles.statsText}>
+              {uncheckedItems.length} {language === 'fr' ? 'restant(s)' : 'remaining'} • {checkedItems.length} {language === 'fr' ? 'coché(s)' : 'checked'}
+            </span>
+          </div>
+
           {/* Unchecked items */}
-          {uncheckedItems.map(item => (
-            <div key={item.id} style={styles.item}>
-              <button
-                onClick={() => handleToggleItem(item)}
-                style={styles.itemCheckbox}
-              >
-                <div style={styles.checkboxEmpty} />
-              </button>
-              <div style={styles.itemContent}>
-                <span style={styles.itemName}>{getItemName(item)}</span>
-                {(item.quantity || item.unit) && (
-                  <span style={styles.itemQuantity}>
-                    {item.quantity} {item.unit}
-                  </span>
-                )}
+          {uncheckedItems.map(item => {
+            const details = getItemDetails(item)
+            return (
+              <div key={item.id} style={styles.item}>
+                <button
+                  onClick={() => handleToggleItem(item)}
+                  style={styles.itemCheckbox}
+                >
+                  <div style={styles.checkboxEmpty} />
+                </button>
+                <div style={styles.itemContent}>
+                  <span style={styles.itemName}>{getItemName(item)}</span>
+                  {details && (
+                    <span style={styles.itemQuantity}>{details}</span>
+                  )}
+                </div>
+                <button
+                  onClick={() => handleDeleteItem(item.id)}
+                  style={styles.itemDelete}
+                >
+                  ✕
+                </button>
               </div>
-              <button
-                onClick={() => handleDeleteItem(item.id)}
-                style={styles.itemDelete}
-              >
-                ✕
-              </button>
-            </div>
-          ))}
+            )
+          })}
 
           {/* Checked items */}
           {checkedItems.length > 0 && (
             <>
               <div style={styles.separator}>
                 <span style={styles.separatorText}>
-                  ✓ {checkedItems.length}
+                  ✓ {language === 'fr' ? 'Dans le caddie' : 'In cart'} ({checkedItems.length})
                 </span>
               </div>
               {checkedItems.map(item => (
@@ -325,15 +433,15 @@ const styles = {
   },
 
   generateButton: {
-    width: '40px',
-    height: '40px',
+    width: '44px',
+    height: '44px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    border: `1px solid ${colors.warmGray}`,
+    border: `2px solid ${colors.forest}`,
     borderRadius: borderRadius.md,
     backgroundColor: colors.white,
-    fontSize: fontSizes.lg,
+    fontSize: fontSizes.xl,
     cursor: 'pointer'
   },
 
@@ -352,22 +460,34 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
     marginBottom: spacing.md
   },
 
   addButton: {
     ...commonStyles.buttonBase,
     ...commonStyles.buttonPrimary,
-    padding: `${spacing.xs} ${spacing.md}`,
+    padding: `${spacing.sm} ${spacing.md}`,
     fontSize: fontSizes.sm
   },
 
   actionsRight: {
     display: 'flex',
-    gap: spacing.sm
+    gap: spacing.sm,
+    flexWrap: 'wrap'
   },
 
-  clearButton: {
+  clearCheckedButton: {
+    ...commonStyles.buttonBase,
+    backgroundColor: colors.terracotta + '15',
+    color: colors.terracotta,
+    border: `1px solid ${colors.terracotta}`,
+    padding: `${spacing.xs} ${spacing.sm}`,
+    fontSize: fontSizes.xs
+  },
+
+  clearAllButton: {
     ...commonStyles.buttonBase,
     backgroundColor: 'transparent',
     color: colors.textMuted,
@@ -376,21 +496,12 @@ const styles = {
     fontSize: fontSizes.xs
   },
 
-  clearAllButton: {
-    width: '36px',
-    height: '36px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    border: `1px solid ${colors.warmGray}`,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.white,
-    cursor: 'pointer',
-    fontSize: fontSizes.sm
-  },
-
   addForm: {
-    marginBottom: spacing.md
+    marginBottom: spacing.md,
+    backgroundColor: colors.white,
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+    boxShadow: shadows.sm
   },
 
   searchInput: {
@@ -400,8 +511,7 @@ const styles = {
   },
 
   suggestions: {
-    backgroundColor: colors.white,
-    border: `1px solid ${colors.warmGray}`,
+    backgroundColor: colors.cream,
     borderRadius: borderRadius.md,
     overflow: 'hidden'
   },
@@ -411,12 +521,23 @@ const styles = {
     padding: spacing.sm,
     textAlign: 'left',
     border: 'none',
-    backgroundColor: 'transparent',
     cursor: 'pointer',
     fontFamily: fonts.body,
     fontSize: fontSizes.sm,
     color: colors.textPrimary,
-    borderBottom: `1px solid ${colors.warmGray}`
+    borderBottom: `1px solid ${colors.warmGray}`,
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+
+  inListBadge: {
+    backgroundColor: colors.forest,
+    color: colors.white,
+    padding: `2px ${spacing.xs}`,
+    borderRadius: borderRadius.full,
+    fontSize: fontSizes.xs,
+    fontWeight: 600
   },
 
   customItemButton: {
@@ -451,6 +572,13 @@ const styles = {
     padding: spacing.sm
   },
 
+  customCancelButton: {
+    ...commonStyles.buttonBase,
+    ...commonStyles.buttonSecondary,
+    width: '44px',
+    padding: spacing.sm
+  },
+
   empty: {
     textAlign: 'center',
     paddingTop: spacing.xl,
@@ -458,7 +586,7 @@ const styles = {
   },
 
   emptyIcon: {
-    fontSize: '48px',
+    fontSize: '64px',
     marginBottom: spacing.md
   },
 
@@ -481,7 +609,24 @@ const styles = {
 
   list: {
     display: 'flex',
-    flexDirection: 'column'
+    flexDirection: 'column',
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    boxShadow: shadows.sm
+  },
+
+  stats: {
+    padding: spacing.sm,
+    backgroundColor: colors.cream,
+    borderBottom: `1px solid ${colors.warmGray}`
+  },
+
+  statsText: {
+    fontSize: fontSizes.xs,
+    color: colors.textMuted,
+    textAlign: 'center',
+    display: 'block'
   },
 
   item: {
@@ -489,7 +634,6 @@ const styles = {
     alignItems: 'center',
     gap: spacing.sm,
     padding: spacing.md,
-    backgroundColor: colors.white,
     borderBottom: `1px solid ${colors.warmGray}`
   },
 
@@ -503,8 +647,8 @@ const styles = {
   },
 
   itemCheckbox: {
-    width: '28px',
-    height: '28px',
+    width: '32px',
+    height: '32px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -515,15 +659,15 @@ const styles = {
   },
 
   checkboxEmpty: {
-    width: '24px',
-    height: '24px',
+    width: '26px',
+    height: '26px',
     borderRadius: borderRadius.md,
     border: `2px solid ${colors.warmGrayDark}`
   },
 
   checkboxChecked: {
-    width: '24px',
-    height: '24px',
+    width: '26px',
+    height: '26px',
     borderRadius: borderRadius.md,
     backgroundColor: colors.forest,
     color: colors.white,
@@ -553,12 +697,13 @@ const styles = {
 
   itemQuantity: {
     fontSize: fontSizes.sm,
-    color: colors.textMuted
+    color: colors.terracotta,
+    fontWeight: 500
   },
 
   itemDelete: {
-    width: '28px',
-    height: '28px',
+    width: '32px',
+    height: '32px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -566,18 +711,21 @@ const styles = {
     backgroundColor: 'transparent',
     color: colors.textMuted,
     cursor: 'pointer',
-    fontSize: fontSizes.sm
+    fontSize: fontSizes.sm,
+    borderRadius: borderRadius.full
   },
 
   separator: {
     padding: spacing.sm,
-    backgroundColor: colors.warmGray,
-    textAlign: 'center'
+    backgroundColor: colors.forest + '10',
+    borderBottom: `1px solid ${colors.warmGray}`
   },
 
   separatorText: {
     fontSize: fontSizes.sm,
-    color: colors.textMuted,
-    fontWeight: 600
+    color: colors.forest,
+    fontWeight: 600,
+    textAlign: 'center',
+    display: 'block'
   }
 }
