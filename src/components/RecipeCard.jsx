@@ -10,6 +10,9 @@ export default function RecipeCard({ recipe, onClick }) {
     ?.map(rt => tags.find(tag => tag.id === rt.tag_id))
     .filter(Boolean) || []
 
+  // Get ingredients count
+  const ingredientsCount = recipe.recipe_ingredients?.length || 0
+
   return (
     <div style={styles.card} onClick={onClick}>
       {/* Header with name and badges */}
@@ -58,6 +61,13 @@ export default function RecipeCard({ recipe, onClick }) {
         {recipe.base && (
           <span style={styles.metaItem}>
             🍚 {getName(recipe.base)}
+          </span>
+        )}
+
+        {/* Ingredients count */}
+        {ingredientsCount > 0 && (
+          <span style={styles.metaItem}>
+            🥕 {ingredientsCount}
           </span>
         )}
 

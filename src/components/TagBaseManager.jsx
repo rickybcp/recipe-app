@@ -8,14 +8,22 @@ const EMOJI_OPTIONS = ['🏷️', '⚡', '👶', '🥬', '🌱', '🍖', '🐟',
 export default function TagBaseManager({ type, onClose }) {
   const { 
     t, getName, language,
-    tags, bases, recipes,
+    tags, bases, ingredients, recipes,
     createTag, updateTag, deleteTag,
-    createBase, updateBase, deleteBase
+    createBase, updateBase, deleteBase,
+    createIngredient, updateIngredient, deleteIngredient
   } = useApp()
 
   const isTag = type === 'tag'
-  const items = isTag ? tags : bases
-  const title = isTag ? t('manage.tags.title') : t('manage.bases.title')
+  const isBase = type === 'base'
+  const isIngredient = type === 'ingredient'
+
+  const items = isTag ? tags : isBase ? bases : ingredients
+  const title = isTag 
+    ? t('manage.tags.title') 
+    : isBase 
+      ? t('manage.bases.title') 
+      : t('manage.ingredients.title')
 
   const [editingItem, setEditingItem] = useState(null)
   const [showForm, setShowForm] = useState(false)
@@ -32,8 +40,12 @@ export default function TagBaseManager({ type, onClose }) {
       return recipes.filter(r => 
         r.recipe_tags?.some(rt => rt.tag_id === itemId)
       ).length
-    } else {
+    } else if (isBase) {
       return recipes.filter(r => r.base_id === itemId).length
+    } else {
+      return recipes.filter(r => 
+        r.recipe_ingredients?.some(ri => ri.ingredient_id === itemId)
+      ).length
     }
   }
 
@@ -78,14 +90,18 @@ export default function TagBaseManager({ type, onClose }) {
       if (editingItem) {
         if (isTag) {
           await updateTag(editingItem.id, data)
-        } else {
+        } else if (isBase) {
           await updateBase(editingItem.id, data)
+        } else {
+          await updateIngredient(editingItem.id, data)
         }
       } else {
         if (isTag) {
           await createTag(data)
-        } else {
+        } else if (isBase) {
           await createBase(data)
+        } else {
+          await createIngredient(data)
         }
       }
       handleCancel()
@@ -108,8 +124,10 @@ export default function TagBaseManager({ type, onClose }) {
     try {
       if (isTag) {
         await deleteTag(item.id)
-      } else {
+      } else if (isBase) {
         await deleteBase(item.id)
+      } else {
+        await deleteIngredient(item.id)
       }
     } catch (error) {
       console.error('Delete error:', error)

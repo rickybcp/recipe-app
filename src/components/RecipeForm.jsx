@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useApp } from '../contexts/AppContext'
 import { colors, fonts, fontSizes, spacing, borderRadius, shadows, commonStyles, getSeasonColor } from '../lib/theme'
 import { SEASONS, DIFFICULTIES, MEAL_TYPES, PRICE_RANGES, getSeasonEmoji, getMealTypeEmoji, getPriceRangeSymbol } from '../lib/i18n'
+import IngredientSelector from './IngredientSelector'
 
 export default function RecipeForm({ recipe, onClose }) {
   const { 
@@ -26,6 +27,14 @@ export default function RecipeForm({ recipe, onClose }) {
   const [priceRange, setPriceRange] = useState(recipe?.price_range || 'medium')
   const [prepTime, setPrepTime] = useState(recipe?.prep_time_minutes?.toString() || '')
   const [notes, setNotes] = useState(recipe?.notes || '')
+  const [recipeIngredients, setRecipeIngredients] = useState(
+    recipe?.recipe_ingredients?.map(ri => ({
+      ingredient_id: ri.ingredient_id,
+      ingredient: ri.ingredient,
+      quantity: ri.quantity || '',
+      unit: ri.unit || ''
+    })) || []
+  )
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
@@ -78,9 +87,9 @@ export default function RecipeForm({ recipe, onClose }) {
 
     try {
       if (isEditing) {
-        await updateRecipe(recipe.id, recipeData, selectedTags)
+        await updateRecipe(recipe.id, recipeData, selectedTags, recipeIngredients)
       } else {
-        await createRecipe(recipeData, selectedTags)
+        await createRecipe(recipeData, selectedTags, recipeIngredients)
       }
       onClose()
     } catch (err) {
@@ -329,6 +338,12 @@ export default function RecipeForm({ recipe, onClose }) {
               max="600"
             />
           </div>
+
+          {/* Ingredients */}
+          <IngredientSelector
+            selectedIngredients={recipeIngredients}
+            onChange={setRecipeIngredients}
+          />
 
           {/* Notes */}
           <div style={styles.field}>

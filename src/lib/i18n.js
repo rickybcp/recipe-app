@@ -59,6 +59,15 @@ const translations = {
       'recipe.delete': 'Supprimer',
       'recipe.deleteConfirm': 'Supprimer cette recette ?',
   
+      // Ingredients
+      'recipe.ingredients': 'Ingrédients',
+      'recipe.ingredients.add': 'Ajouter un ingrédient',
+      'recipe.ingredients.select': 'Rechercher un ingrédient...',
+      'recipe.ingredients.new': 'Nouvel ingrédient',
+      'recipe.ingredients.quantity': 'Qté',
+      'recipe.ingredients.unit': 'Unité',
+      'recipe.ingredients.empty': 'Aucun ingrédient trouvé',
+  
       // Seasons
       'season.winter': 'Hiver',
       'season.spring': 'Printemps',
@@ -96,13 +105,15 @@ const translations = {
       'settings.title': 'Paramètres',
       'settings.tags': 'Gérer les tags',
       'settings.bases': 'Gérer les féculents',
+      'settings.ingredients': 'Gérer les ingrédients',
       'settings.language': 'Langue',
       'settings.logout': 'Déconnexion',
       'settings.logoutConfirm': 'Voulez-vous vous déconnecter ?',
   
-      // Tag/Base management
+      // Tag/Base/Ingredient management
       'manage.tags.title': 'Mes tags',
       'manage.bases.title': 'Mes féculents',
+      'manage.ingredients.title': 'Mes ingrédients',
       'manage.add': 'Ajouter',
       'manage.nameFr': 'Nom (français)',
       'manage.nameEn': 'Nom (anglais)',
@@ -179,6 +190,15 @@ const translations = {
       'recipe.delete': 'Delete',
       'recipe.deleteConfirm': 'Delete this recipe?',
   
+      // Ingredients
+      'recipe.ingredients': 'Ingredients',
+      'recipe.ingredients.add': 'Add ingredient',
+      'recipe.ingredients.select': 'Search ingredient...',
+      'recipe.ingredients.new': 'New ingredient',
+      'recipe.ingredients.quantity': 'Qty',
+      'recipe.ingredients.unit': 'Unit',
+      'recipe.ingredients.empty': 'No ingredient found',
+  
       // Seasons
       'season.winter': 'Winter',
       'season.spring': 'Spring',
@@ -216,13 +236,15 @@ const translations = {
       'settings.title': 'Settings',
       'settings.tags': 'Manage tags',
       'settings.bases': 'Manage starches',
+      'settings.ingredients': 'Manage ingredients',
       'settings.language': 'Language',
       'settings.logout': 'Log out',
       'settings.logoutConfirm': 'Do you want to log out?',
   
-      // Tag/Base management
+      // Tag/Base/Ingredient management
       'manage.tags.title': 'My tags',
       'manage.bases.title': 'My starches',
+      'manage.ingredients.title': 'My ingredients',
       'manage.add': 'Add',
       'manage.nameFr': 'Name (French)',
       'manage.nameEn': 'Name (English)',

@@ -181,6 +181,49 @@ export async function getCuisines() {
 }
 
 // ============================================
+// INGREDIENTS
+// ============================================
+
+export async function getIngredients(userId) {
+  const { data, error } = await supabase
+    .from('ingredients')
+    .select('*')
+    .eq('user_id', userId)
+    .order('name_fr', { ascending: true })
+  if (error) throw error
+  return data
+}
+
+export async function createIngredient(userId, ingredient) {
+  const { data, error } = await supabase
+    .from('ingredients')
+    .insert({ user_id: userId, ...ingredient })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function updateIngredient(ingredientId, updates) {
+  const { data, error } = await supabase
+    .from('ingredients')
+    .update(updates)
+    .eq('id', ingredientId)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteIngredient(ingredientId) {
+  const { error } = await supabase
+    .from('ingredients')
+    .delete()
+    .eq('id', ingredientId)
+  if (error) throw error
+}
+
+// ============================================
 // RECIPES
 // ============================================
 
@@ -191,7 +234,15 @@ export async function getRecipes(userId) {
       *,
       base:bases(*),
       cuisine:cuisines(*),
-      recipe_tags(tag_id)
+      recipe_tags(tag_id),
+      recipe_ingredients(
+        id,
+        ingredient_id,
+        quantity,
+        unit,
+        sort_order,
+        ingredient:ingredients(*)
+      )
     `)
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
@@ -199,7 +250,7 @@ export async function getRecipes(userId) {
   return data
 }
 
-export async function createRecipe(userId, recipe, tagIds = []) {
+export async function createRecipe(userId, recipe, tagIds = [], ingredientsList = []) {
   // Insert recipe
   const { data: newRecipe, error: recipeError } = await supabase
     .from('recipes')
@@ -220,10 +271,25 @@ export async function createRecipe(userId, recipe, tagIds = []) {
     if (tagsError) throw tagsError
   }
 
+  // Insert ingredients if any
+  if (ingredientsList.length > 0) {
+    const ingredientLinks = ingredientsList.map((ing, index) => ({
+      recipe_id: newRecipe.id,
+      ingredient_id: ing.ingredient_id,
+      quantity: ing.quantity || null,
+      unit: ing.unit || null,
+      sort_order: index
+    }))
+    const { error: ingredientsError } = await supabase
+      .from('recipe_ingredients')
+      .insert(ingredientLinks)
+    if (ingredientsError) throw ingredientsError
+  }
+
   return newRecipe
 }
 
-export async function updateRecipe(recipeId, recipe, tagIds = []) {
+export async function updateRecipe(recipeId, recipe, tagIds = [], ingredientsList = []) {
   // Update recipe
   const { data: updatedRecipe, error: recipeError } = await supabase
     .from('recipes')
@@ -234,11 +300,11 @@ export async function updateRecipe(recipeId, recipe, tagIds = []) {
   if (recipeError) throw recipeError
 
   // Delete existing tags
-  const { error: deleteError } = await supabase
+  const { error: deleteTagsError } = await supabase
     .from('recipe_tags')
     .delete()
     .eq('recipe_id', recipeId)
-  if (deleteError) throw deleteError
+  if (deleteTagsError) throw deleteTagsError
 
   // Insert new tags
   if (tagIds.length > 0) {
@@ -250,6 +316,28 @@ export async function updateRecipe(recipeId, recipe, tagIds = []) {
       .from('recipe_tags')
       .insert(tagLinks)
     if (tagsError) throw tagsError
+  }
+
+  // Delete existing ingredients
+  const { error: deleteIngredientsError } = await supabase
+    .from('recipe_ingredients')
+    .delete()
+    .eq('recipe_id', recipeId)
+  if (deleteIngredientsError) throw deleteIngredientsError
+
+  // Insert new ingredients
+  if (ingredientsList.length > 0) {
+    const ingredientLinks = ingredientsList.map((ing, index) => ({
+      recipe_id: recipeId,
+      ingredient_id: ing.ingredient_id,
+      quantity: ing.quantity || null,
+      unit: ing.unit || null,
+      sort_order: index
+    }))
+    const { error: ingredientsError } = await supabase
+      .from('recipe_ingredients')
+      .insert(ingredientLinks)
+    if (ingredientsError) throw ingredientsError
   }
 
   return updatedRecipe

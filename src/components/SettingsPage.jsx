@@ -8,6 +8,7 @@ export default function SettingsPage() {
 
   const [showTagManager, setShowTagManager] = useState(false)
   const [showBaseManager, setShowBaseManager] = useState(false)
+  const [showIngredientManager, setShowIngredientManager] = useState(false)
 
   const handleLanguageChange = async (newLang) => {
     try {
@@ -66,7 +67,7 @@ export default function SettingsPage() {
         {/* Tags management */}
         <button
           onClick={() => setShowTagManager(true)}
-          style={styles.card}
+          style={styles.cardButton}
         >
           <div style={styles.cardHeader}>
             <span style={styles.cardIcon}>🏷️</span>
@@ -78,11 +79,23 @@ export default function SettingsPage() {
         {/* Bases management */}
         <button
           onClick={() => setShowBaseManager(true)}
-          style={styles.card}
+          style={styles.cardButton}
         >
           <div style={styles.cardHeader}>
             <span style={styles.cardIcon}>🍚</span>
             <span style={styles.cardTitle}>{t('settings.bases')}</span>
+          </div>
+          <span style={styles.cardArrow}>→</span>
+        </button>
+
+        {/* Ingredients management */}
+        <button
+          onClick={() => setShowIngredientManager(true)}
+          style={styles.cardButton}
+        >
+          <div style={styles.cardHeader}>
+            <span style={styles.cardIcon}>🥕</span>
+            <span style={styles.cardTitle}>{t('settings.ingredients')}</span>
           </div>
           <span style={styles.cardArrow}>→</span>
         </button>
@@ -106,6 +119,14 @@ export default function SettingsPage() {
         <TagBaseManager
           type="base"
           onClose={() => setShowBaseManager(false)}
+        />
+      )}
+
+      {/* Ingredient Manager Modal */}
+      {showIngredientManager && (
+        <TagBaseManager
+          type="ingredient"
+          onClose={() => setShowIngredientManager(false)}
         />
       )}
     </div>
@@ -146,6 +167,13 @@ const styles = {
   },
 
   card: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+  },
+
+  cardButton: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',

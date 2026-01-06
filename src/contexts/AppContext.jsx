@@ -17,6 +17,10 @@ import {
   updateBase as apiUpdateBase,
   deleteBase as apiDeleteBase,
   getCuisines,
+  getIngredients,
+  createIngredient as apiCreateIngredient,
+  updateIngredient as apiUpdateIngredient,
+  deleteIngredient as apiDeleteIngredient,
   getRecipes,
   createRecipe as apiCreateRecipe,
   updateRecipe as apiUpdateRecipe,
@@ -56,6 +60,7 @@ export function AppProvider({ children }) {
   const [tags, setTags] = useState([])
   const [bases, setBases] = useState([])
   const [cuisines, setCuisines] = useState([])
+  const [ingredients, setIngredients] = useState([])
   const [recipes, setRecipes] = useState([])
   const [mealPlans, setMealPlans] = useState([])
   const [dataLoading, setDataLoading] = useState(false)
@@ -102,6 +107,7 @@ export function AppProvider({ children }) {
           setProfile(null)
           setTags([])
           setBases([])
+          setIngredients([])
           setRecipes([])
           setMealPlans([])
         }
@@ -126,11 +132,12 @@ export function AppProvider({ children }) {
     async function loadUserData() {
       setDataLoading(true)
       try {
-        const [profileData, tagsData, basesData, cuisinesData, recipesData] = await Promise.all([
+        const [profileData, tagsData, basesData, cuisinesData, ingredientsData, recipesData] = await Promise.all([
           getProfile(user.id),
           getTags(user.id),
           getBases(user.id),
           getCuisines(),
+          getIngredients(user.id),
           getRecipes(user.id)
         ])
 
@@ -139,6 +146,7 @@ export function AppProvider({ children }) {
           setTags(tagsData)
           setBases(basesData)
           setCuisines(cuisinesData)
+          setIngredients(ingredientsData)
           setRecipes(recipesData)
         }
       } catch (error) {
@@ -263,21 +271,45 @@ export function AppProvider({ children }) {
   }, [])
 
   // ============================================
+  // INGREDIENT ACTIONS
+  // ============================================
+
+  const createIngredient = useCallback(async (ingredientData) => {
+    if (!user) return
+    const newIngredient = await apiCreateIngredient(user.id, ingredientData)
+    setIngredients(prev => [...prev, newIngredient].sort((a, b) => 
+      a.name_fr.localeCompare(b.name_fr)
+    ))
+    return newIngredient
+  }, [user])
+
+  const updateIngredient = useCallback(async (ingredientId, ingredientData) => {
+    const updated = await apiUpdateIngredient(ingredientId, ingredientData)
+    setIngredients(prev => prev.map(i => i.id === ingredientId ? updated : i))
+    return updated
+  }, [])
+
+  const deleteIngredient = useCallback(async (ingredientId) => {
+    await apiDeleteIngredient(ingredientId)
+    setIngredients(prev => prev.filter(i => i.id !== ingredientId))
+  }, [])
+
+  // ============================================
   // RECIPE ACTIONS
   // ============================================
 
-  const createRecipe = useCallback(async (recipeData, tagIds) => {
+  const createRecipe = useCallback(async (recipeData, tagIds, ingredientsList) => {
     if (!user) return
-    const newRecipe = await apiCreateRecipe(user.id, recipeData, tagIds)
+    const newRecipe = await apiCreateRecipe(user.id, recipeData, tagIds, ingredientsList)
     // Reload recipes to get full data with relations
     const allRecipes = await getRecipes(user.id)
     setRecipes(allRecipes)
     return newRecipe
   }, [user])
 
-  const updateRecipe = useCallback(async (recipeId, recipeData, tagIds) => {
+  const updateRecipe = useCallback(async (recipeId, recipeData, tagIds, ingredientsList) => {
     if (!user) return
-    await apiUpdateRecipe(recipeId, recipeData, tagIds)
+    await apiUpdateRecipe(recipeId, recipeData, tagIds, ingredientsList)
     // Reload recipes to get full data with relations
     const allRecipes = await getRecipes(user.id)
     setRecipes(allRecipes)
@@ -331,6 +363,7 @@ export function AppProvider({ children }) {
     tags,
     bases,
     cuisines,
+    ingredients,
     recipes,
     mealPlans,
     dataLoading,
@@ -343,6 +376,9 @@ export function AppProvider({ children }) {
     createBase,
     updateBase,
     deleteBase,
+    createIngredient,
+    updateIngredient,
+    deleteIngredient,
     createRecipe,
     updateRecipe,
     deleteRecipe,
@@ -361,10 +397,11 @@ export function AppProvider({ children }) {
   }), [
     user, profile, authLoading, authError,
     signIn, signUp, signOut, clearAuthError,
-    tags, bases, cuisines, recipes, mealPlans, dataLoading,
+    tags, bases, cuisines, ingredients, recipes, mealPlans, dataLoading,
     updateLanguage,
     createTag, updateTag, deleteTag,
     createBase, updateBase, deleteBase,
+    createIngredient, updateIngredient, deleteIngredient,
     createRecipe, updateRecipe, deleteRecipe,
     loadMealPlans, createMealPlan, deleteMealPlan,
     currentTab,
