@@ -11,35 +11,6 @@ function parseQuantity(str) {
   return isNaN(num) ? null : num
 }
 
-// Helper: Add quantity
-function addToQuantity(currentQty, currentUnit, addQty) {
-  const currentNum = parseQuantity(currentQty)
-  const addNum = parseQuantity(addQty)
-  
-  // Both numeric - just add
-  if (currentNum !== null && addNum !== null) {
-    const total = currentNum + addNum
-    const formatted = total % 1 === 0 ? total.toString() : total.toFixed(1)
-    return { quantity: formatted, unit: currentUnit }
-  }
-  
-  // Current is numeric, add is a number
-  if (currentNum !== null) {
-    const total = currentNum + (addNum || 1)
-    const formatted = total % 1 === 0 ? total.toString() : total.toFixed(1)
-    return { quantity: formatted, unit: currentUnit }
-  }
-  
-  // Current exists but not numeric - append
-  if (currentQty) {
-    const addPart = addQty || '1'
-    return { quantity: `${currentQty} + ${addPart}`, unit: null }
-  }
-  
-  // No current quantity - use add value or 1
-  return { quantity: addQty || '1', unit: currentUnit }
-}
-
 export default function ShoppingListPage() {
   const { 
     t, getName, language,
@@ -58,14 +29,14 @@ export default function ShoppingListPage() {
   const uncheckedItems = shoppingItems.filter(item => !item.checked)
   const checkedItems = shoppingItems.filter(item => item.checked)
 
-  // Get existing ingredient IDs (for showing "already in list" indicator)
+  // Get existing ingredient IDs
   const existingIngredientIds = new Set(
     shoppingItems
       .filter(item => item.ingredient_id && !item.checked)
       .map(item => item.ingredient_id)
   )
 
-  // Filter ingredients by search query (don't exclude existing ones)
+  // Filter ingredients by search query
   const filteredIngredients = ingredients
     .filter(ing =>
       ing.name_fr.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -90,26 +61,71 @@ export default function ShoppingListPage() {
     }
   }
 
-  // Add ingredient from list (or increment if exists)
+  // Increment quantity
+  const handleIncrement = async (item) => {
+    try {
+      const currentQty = parseQuantity(item.quantity)
+      if (currentQty !== null) {
+        // Numeric quantity - increment by 1
+        const newQty = currentQty + 1
+        await updateShoppingItem(item.id, {
+          quantity: newQty % 1 === 0 ? newQty.toString() : newQty.toFixed(1)
+        })
+      } else if (!item.quantity) {
+        // No quantity - set to 1
+        await updateShoppingItem(item.id, { quantity: '1' })
+      }
+      // If quantity is complex (like "200g + 1"), don't change it
+    } catch (error) {
+      console.error('Increment error:', error)
+    }
+  }
+
+  // Decrement quantity
+  const handleDecrement = async (item) => {
+    try {
+      const currentQty = parseQuantity(item.quantity)
+      if (currentQty !== null && currentQty > 1) {
+        // Numeric quantity > 1 - decrement by 1
+        const newQty = currentQty - 1
+        await updateShoppingItem(item.id, {
+          quantity: newQty % 1 === 0 ? newQty.toString() : newQty.toFixed(1)
+        })
+      } else if (currentQty === 1) {
+        // Quantity is 1 - delete item
+        await deleteShoppingItem(item.id)
+      }
+      // If quantity is complex or null, don't change it
+    } catch (error) {
+      console.error('Decrement error:', error)
+    }
+  }
+
+  // Check if quantity can be adjusted
+  const canAdjustQuantity = (item) => {
+    const qty = parseQuantity(item.quantity)
+    return qty !== null || !item.quantity
+  }
+
+  // Add ingredient from list
   const handleAddIngredient = async (ingredient) => {
     try {
-      // Check if ingredient already exists in unchecked list
       const existingItem = shoppingItems.find(
         item => item.ingredient_id === ingredient.id && !item.checked
       )
       
       if (existingItem) {
-        // Increment the quantity by 1
-        const updated = addToQuantity(existingItem.quantity, existingItem.unit, '1')
-        await updateShoppingItem(existingItem.id, {
-          quantity: updated.quantity,
-          unit: updated.unit
-        })
-        setNotification(language === 'fr' 
-          ? `${getName(ingredient)} +1`
-          : `${getName(ingredient)} +1`)
+        const currentQty = parseQuantity(existingItem.quantity)
+        if (currentQty !== null) {
+          const newQty = currentQty + 1
+          await updateShoppingItem(existingItem.id, {
+            quantity: newQty.toString()
+          })
+        } else if (!existingItem.quantity) {
+          await updateShoppingItem(existingItem.id, { quantity: '1' })
+        }
+        setNotification(`${getName(ingredient)} +1`)
       } else {
-        // Create new item with quantity 1
         await createShoppingItem({
           ingredient_id: ingredient.id,
           quantity: '1',
@@ -182,12 +198,9 @@ export default function ShoppingListPage() {
   }
 
   // Get item display with quantity
-  const getItemDetails = (item) => {
+  const getItemQuantity = (item) => {
     if (!item.quantity) return null
-    
-    if (item.unit) {
-      return `${item.quantity} ${item.unit}`
-    }
+    if (item.unit) return `${item.quantity} ${item.unit}`
     return item.quantity
   }
 
@@ -263,9 +276,7 @@ export default function ShoppingListPage() {
                   >
                     <span>{getName(ing)}</span>
                     {isInList && (
-                      <span style={styles.inListBadge}>
-                        {language === 'fr' ? '+1' : '+1'}
-                      </span>
+                      <span style={styles.inListBadge}>+1</span>
                     )}
                   </button>
                 )
@@ -335,7 +346,9 @@ export default function ShoppingListPage() {
 
           {/* Unchecked items */}
           {uncheckedItems.map(item => {
-            const details = getItemDetails(item)
+            const quantity = getItemQuantity(item)
+            const canAdjust = canAdjustQuantity(item)
+            
             return (
               <div key={item.id} style={styles.item}>
                 <button
@@ -344,12 +357,36 @@ export default function ShoppingListPage() {
                 >
                   <div style={styles.checkboxEmpty} />
                 </button>
+                
                 <div style={styles.itemContent}>
                   <span style={styles.itemName}>{getItemName(item)}</span>
-                  {details && (
-                    <span style={styles.itemQuantity}>{details}</span>
+                </div>
+
+                {/* Quantity controls */}
+                <div style={styles.quantityControls}>
+                  {canAdjust && (
+                    <button
+                      onClick={() => handleDecrement(item)}
+                      style={styles.quantityButton}
+                    >
+                      −
+                    </button>
+                  )}
+                  
+                  <span style={styles.quantityDisplay}>
+                    {quantity || '1'}
+                  </span>
+                  
+                  {canAdjust && (
+                    <button
+                      onClick={() => handleIncrement(item)}
+                      style={styles.quantityButton}
+                    >
+                      +
+                    </button>
                   )}
                 </div>
+
                 <button
                   onClick={() => handleDeleteItem(item.id)}
                   style={styles.itemDelete}
@@ -633,7 +670,8 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: spacing.sm,
-    padding: spacing.md,
+    padding: spacing.sm,
+    paddingLeft: spacing.md,
     borderBottom: `1px solid ${colors.warmGray}`
   },
 
@@ -641,7 +679,8 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: spacing.sm,
-    padding: spacing.md,
+    padding: spacing.sm,
+    paddingLeft: spacing.md,
     backgroundColor: colors.cream,
     borderBottom: `1px solid ${colors.warmGray}`
   },
@@ -655,19 +694,20 @@ const styles = {
     border: 'none',
     backgroundColor: 'transparent',
     cursor: 'pointer',
-    padding: 0
+    padding: 0,
+    flexShrink: 0
   },
 
   checkboxEmpty: {
-    width: '26px',
-    height: '26px',
+    width: '24px',
+    height: '24px',
     borderRadius: borderRadius.md,
     border: `2px solid ${colors.warmGrayDark}`
   },
 
   checkboxChecked: {
-    width: '26px',
-    height: '26px',
+    width: '24px',
+    height: '24px',
     borderRadius: borderRadius.md,
     backgroundColor: colors.forest,
     color: colors.white,
@@ -680,13 +720,16 @@ const styles = {
 
   itemContent: {
     flex: 1,
-    display: 'flex',
-    flexDirection: 'column'
+    minWidth: 0
   },
 
   itemName: {
     fontSize: fontSizes.md,
-    color: colors.textPrimary
+    color: colors.textPrimary,
+    display: 'block',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap'
   },
 
   itemNameChecked: {
@@ -695,15 +738,43 @@ const styles = {
     textDecoration: 'line-through'
   },
 
-  itemQuantity: {
+  quantityControls: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '2px',
+    backgroundColor: colors.cream,
+    borderRadius: borderRadius.md,
+    padding: '2px',
+    flexShrink: 0
+  },
+
+  quantityButton: {
+    width: '28px',
+    height: '28px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: 'none',
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.sm,
+    cursor: 'pointer',
+    fontSize: fontSizes.md,
+    fontWeight: 600,
+    color: colors.forest
+  },
+
+  quantityDisplay: {
+    minWidth: '32px',
+    textAlign: 'center',
     fontSize: fontSizes.sm,
+    fontWeight: 600,
     color: colors.terracotta,
-    fontWeight: 500
+    padding: `0 ${spacing.xs}`
   },
 
   itemDelete: {
-    width: '32px',
-    height: '32px',
+    width: '28px',
+    height: '28px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -711,8 +782,9 @@ const styles = {
     backgroundColor: 'transparent',
     color: colors.textMuted,
     cursor: 'pointer',
-    fontSize: fontSizes.sm,
-    borderRadius: borderRadius.full
+    fontSize: fontSizes.xs,
+    borderRadius: borderRadius.full,
+    flexShrink: 0
   },
 
   separator: {
