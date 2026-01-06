@@ -1,11 +1,15 @@
 import { useApp } from '../contexts/AppContext'
-import { colors, fonts, fontSizes, spacing, shadows } from '../lib/theme'
+import { colors, fonts, fontSizes, spacing } from '../lib/theme'
 import RecipesPage from './RecipesPage'
 import CalendarPage from './CalendarPage'
+import ShoppingListPage from './ShoppingListPage'
 import SettingsPage from './SettingsPage'
 
 export default function Layout() {
-  const { currentTab, setCurrentTab, t } = useApp()
+  const { t, currentTab, setCurrentTab, shoppingItems } = useApp()
+
+  // Count unchecked shopping items for badge
+  const uncheckedCount = shoppingItems.filter(item => !item.checked).length
 
   const renderPage = () => {
     switch (currentTab) {
@@ -13,12 +17,21 @@ export default function Layout() {
         return <RecipesPage />
       case 'calendar':
         return <CalendarPage />
+      case 'shopping':
+        return <ShoppingListPage />
       case 'settings':
         return <SettingsPage />
       default:
         return <RecipesPage />
     }
   }
+
+  const tabs = [
+    { id: 'recipes', label: t('nav.recipes'), icon: '🍳' },
+    { id: 'calendar', label: t('nav.calendar'), icon: '📅' },
+    { id: 'shopping', label: t('nav.shopping'), icon: '🛒', badge: uncheckedCount },
+    { id: 'settings', label: t('nav.settings'), icon: '⚙️' }
+  ]
 
   return (
     <div style={styles.container}>
@@ -29,47 +42,31 @@ export default function Layout() {
 
       {/* Bottom navigation */}
       <nav style={styles.nav}>
-        <NavButton
-          icon="🍳"
-          label={t('nav.recipes')}
-          isActive={currentTab === 'recipes'}
-          onClick={() => setCurrentTab('recipes')}
-        />
-        <NavButton
-          icon="📅"
-          label={t('nav.calendar')}
-          isActive={currentTab === 'calendar'}
-          onClick={() => setCurrentTab('calendar')}
-        />
-        <NavButton
-          icon="⚙️"
-          label={t('nav.settings')}
-          isActive={currentTab === 'settings'}
-          onClick={() => setCurrentTab('settings')}
-        />
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setCurrentTab(tab.id)}
+            style={{
+              ...styles.navButton,
+              color: currentTab === tab.id ? colors.forest : colors.textMuted
+            }}
+          >
+            <span style={styles.navIcon}>
+              {tab.icon}
+              {tab.badge > 0 && (
+                <span style={styles.navBadge}>{tab.badge > 9 ? '9+' : tab.badge}</span>
+              )}
+            </span>
+            <span style={{
+              ...styles.navLabel,
+              fontWeight: currentTab === tab.id ? 600 : 400
+            }}>
+              {tab.label}
+            </span>
+          </button>
+        ))}
       </nav>
     </div>
-  )
-}
-
-function NavButton({ icon, label, isActive, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        ...styles.navButton,
-        color: isActive ? colors.forest : colors.textMuted,
-        backgroundColor: isActive ? colors.successLight : 'transparent'
-      }}
-    >
-      <span style={styles.navIcon}>{icon}</span>
-      <span style={{
-        ...styles.navLabel,
-        fontWeight: isActive ? 700 : 400
-      }}>
-        {label}
-      </span>
-    </button>
   )
 }
 
@@ -102,33 +99,44 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-around',
     alignItems: 'center',
-    padding: `0 ${spacing.md}`,
     paddingBottom: 'env(safe-area-inset-bottom)',
-    boxShadow: shadows.lg
+    zIndex: 100
   },
 
   navButton: {
+    flex: 1,
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
     gap: '4px',
-    padding: `${spacing.sm} ${spacing.md}`,
+    padding: spacing.sm,
     border: 'none',
-    borderRadius: '12px',
+    backgroundColor: 'transparent',
     cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    fontFamily: fonts.body,
-    minWidth: '70px'
+    fontFamily: fonts.body
   },
 
   navIcon: {
-    fontSize: '24px',
-    lineHeight: 1
+    fontSize: '20px',
+    position: 'relative'
+  },
+
+  navBadge: {
+    position: 'absolute',
+    top: '-6px',
+    right: '-10px',
+    backgroundColor: colors.terracotta,
+    color: colors.white,
+    fontSize: '10px',
+    fontWeight: 700,
+    padding: '2px 5px',
+    borderRadius: '10px',
+    minWidth: '16px',
+    textAlign: 'center'
   },
 
   navLabel: {
-    fontSize: fontSizes.xs,
-    lineHeight: 1
+    fontSize: fontSizes.xs
   }
 }

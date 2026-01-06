@@ -131,7 +131,23 @@ const translations = {
       'common.confirm': 'Confirmer',
       'common.yes': 'Oui',
       'common.no': 'Non',
-      'common.minutes': 'min'
+      'common.minutes': 'min',
+
+      // Shopping list
+      'nav.shopping': 'Courses',
+      'shopping.title': 'Liste de courses',
+      'shopping.empty': 'Votre liste de courses est vide',
+      'shopping.generate': 'Générer depuis le calendrier',
+      'shopping.addItem': 'Ajouter un article',
+      'shopping.clearChecked': 'Supprimer les cochés',
+      'shopping.clearAll': 'Vider la liste',
+      'shopping.clearAllConfirm': 'Vider toute la liste de courses ?',
+      'shopping.selectDays': 'Sélectionner les jours',
+      'shopping.selectDaysDesc': 'Choisissez les jours pour générer la liste',
+      'shopping.selectedMeals': 'repas sélectionné(s)',
+      'shopping.generateList': 'Générer la liste',
+      'shopping.itemsAdded': '{count} article(s) ajouté(s)',
+      'shopping.customItem': 'Article personnalisé...',
     },
   
     en: {
@@ -262,8 +278,25 @@ const translations = {
       'common.confirm': 'Confirm',
       'common.yes': 'Yes',
       'common.no': 'No',
-      'common.minutes': 'min'
-    }
+      'common.minutes': 'min',
+
+      // Shopping list
+      'nav.shopping': 'Shopping',
+      'shopping.title': 'Shopping list',
+      'shopping.empty': 'Your shopping list is empty',
+      'shopping.generate': 'Generate from calendar',
+      'shopping.addItem': 'Add item',
+      'shopping.clearChecked': 'Remove checked',
+      'shopping.clearAll': 'Clear list',
+      'shopping.clearAllConfirm': 'Clear the entire shopping list?',
+      'shopping.selectDays': 'Select days',
+      'shopping.selectDaysDesc': 'Choose days to generate the list',
+      'shopping.selectedMeals': 'meal(s) selected',
+      'shopping.generateList': 'Generate list',
+      'shopping.itemsAdded': '{count} item(s) added',
+      'shopping.customItem': 'Custom item...',
+    },
+
   }
   
   // ============================================

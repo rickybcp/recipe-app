@@ -27,7 +27,14 @@ import {
   deleteRecipe as apiDeleteRecipe,
   getMealPlans,
   createMealPlan as apiCreateMealPlan,
-  deleteMealPlan as apiDeleteMealPlan
+  deleteMealPlan as apiDeleteMealPlan,
+  getShoppingItems,
+  createShoppingItem as apiCreateShoppingItem,
+  createShoppingItems as apiCreateShoppingItems,
+  updateShoppingItem as apiUpdateShoppingItem,
+  deleteShoppingItem as apiDeleteShoppingItem,
+  deleteCheckedShoppingItems as apiDeleteCheckedShoppingItems,
+  deleteAllShoppingItems as apiDeleteAllShoppingItems
 } from '../lib/supabase'
 import { createT, getLocalizedName } from '../lib/i18n'
 
@@ -63,6 +70,7 @@ export function AppProvider({ children }) {
   const [ingredients, setIngredients] = useState([])
   const [recipes, setRecipes] = useState([])
   const [mealPlans, setMealPlans] = useState([])
+  const [shoppingItems, setShoppingItems] = useState([])
   const [dataLoading, setDataLoading] = useState(false)
 
   // UI state
@@ -110,6 +118,7 @@ export function AppProvider({ children }) {
           setIngredients([])
           setRecipes([])
           setMealPlans([])
+          setShoppingItems([])
         }
       }
     })
@@ -132,13 +141,14 @@ export function AppProvider({ children }) {
     async function loadUserData() {
       setDataLoading(true)
       try {
-        const [profileData, tagsData, basesData, cuisinesData, ingredientsData, recipesData] = await Promise.all([
+        const [profileData, tagsData, basesData, cuisinesData, ingredientsData, recipesData, shoppingData] = await Promise.all([
           getProfile(user.id),
           getTags(user.id),
           getBases(user.id),
           getCuisines(),
           getIngredients(user.id),
-          getRecipes(user.id)
+          getRecipes(user.id),
+          getShoppingItems(user.id)
         ])
 
         if (mounted) {
@@ -148,6 +158,7 @@ export function AppProvider({ children }) {
           setCuisines(cuisinesData)
           setIngredients(ingredientsData)
           setRecipes(recipesData)
+          setShoppingItems(shoppingData)
         }
       } catch (error) {
         console.error('Load user data error:', error)
@@ -237,7 +248,6 @@ export function AppProvider({ children }) {
   const deleteTag = useCallback(async (tagId) => {
     await apiDeleteTag(tagId)
     setTags(prev => prev.filter(t => t.id !== tagId))
-    // Also update recipes that had this tag
     setRecipes(prev => prev.map(r => ({
       ...r,
       recipe_tags: r.recipe_tags.filter(rt => rt.tag_id !== tagId)
@@ -264,7 +274,6 @@ export function AppProvider({ children }) {
   const deleteBase = useCallback(async (baseId) => {
     await apiDeleteBase(baseId)
     setBases(prev => prev.filter(b => b.id !== baseId))
-    // Update recipes that had this base
     setRecipes(prev => prev.map(r => 
       r.base_id === baseId ? { ...r, base_id: null, base: null } : r
     ))
@@ -301,7 +310,6 @@ export function AppProvider({ children }) {
   const createRecipe = useCallback(async (recipeData, tagIds, ingredientsList) => {
     if (!user) return
     const newRecipe = await apiCreateRecipe(user.id, recipeData, tagIds, ingredientsList)
-    // Reload recipes to get full data with relations
     const allRecipes = await getRecipes(user.id)
     setRecipes(allRecipes)
     return newRecipe
@@ -310,7 +318,6 @@ export function AppProvider({ children }) {
   const updateRecipe = useCallback(async (recipeId, recipeData, tagIds, ingredientsList) => {
     if (!user) return
     await apiUpdateRecipe(recipeId, recipeData, tagIds, ingredientsList)
-    // Reload recipes to get full data with relations
     const allRecipes = await getRecipes(user.id)
     setRecipes(allRecipes)
   }, [user])
@@ -318,7 +325,6 @@ export function AppProvider({ children }) {
   const deleteRecipe = useCallback(async (recipeId) => {
     await apiDeleteRecipe(recipeId)
     setRecipes(prev => prev.filter(r => r.id !== recipeId))
-    // Also remove associated meal plans
     setMealPlans(prev => prev.filter(mp => mp.recipe_id !== recipeId))
   }, [])
 
@@ -345,6 +351,47 @@ export function AppProvider({ children }) {
   }, [])
 
   // ============================================
+  // SHOPPING LIST ACTIONS
+  // ============================================
+
+  const createShoppingItem = useCallback(async (itemData) => {
+    if (!user) return
+    const newItem = await apiCreateShoppingItem(user.id, itemData)
+    setShoppingItems(prev => [...prev, newItem])
+    return newItem
+  }, [user])
+
+  const createShoppingItems = useCallback(async (items) => {
+    if (!user) return
+    const newItems = await apiCreateShoppingItems(user.id, items)
+    setShoppingItems(prev => [...prev, ...newItems])
+    return newItems
+  }, [user])
+
+  const updateShoppingItem = useCallback(async (itemId, updates) => {
+    const updated = await apiUpdateShoppingItem(itemId, updates)
+    setShoppingItems(prev => prev.map(item => item.id === itemId ? updated : item))
+    return updated
+  }, [])
+
+  const deleteShoppingItem = useCallback(async (itemId) => {
+    await apiDeleteShoppingItem(itemId)
+    setShoppingItems(prev => prev.filter(item => item.id !== itemId))
+  }, [])
+
+  const deleteCheckedShoppingItems = useCallback(async () => {
+    if (!user) return
+    await apiDeleteCheckedShoppingItems(user.id)
+    setShoppingItems(prev => prev.filter(item => !item.checked))
+  }, [user])
+
+  const deleteAllShoppingItems = useCallback(async () => {
+    if (!user) return
+    await apiDeleteAllShoppingItems(user.id)
+    setShoppingItems([])
+  }, [user])
+
+  // ============================================
   // CONTEXT VALUE
   // ============================================
 
@@ -366,6 +413,7 @@ export function AppProvider({ children }) {
     ingredients,
     recipes,
     mealPlans,
+    shoppingItems,
     dataLoading,
 
     // Actions
@@ -385,6 +433,12 @@ export function AppProvider({ children }) {
     loadMealPlans,
     createMealPlan,
     deleteMealPlan,
+    createShoppingItem,
+    createShoppingItems,
+    updateShoppingItem,
+    deleteShoppingItem,
+    deleteCheckedShoppingItems,
+    deleteAllShoppingItems,
 
     // UI
     currentTab,
@@ -397,13 +451,15 @@ export function AppProvider({ children }) {
   }), [
     user, profile, authLoading, authError,
     signIn, signUp, signOut, clearAuthError,
-    tags, bases, cuisines, ingredients, recipes, mealPlans, dataLoading,
+    tags, bases, cuisines, ingredients, recipes, mealPlans, shoppingItems, dataLoading,
     updateLanguage,
     createTag, updateTag, deleteTag,
     createBase, updateBase, deleteBase,
     createIngredient, updateIngredient, deleteIngredient,
     createRecipe, updateRecipe, deleteRecipe,
     loadMealPlans, createMealPlan, deleteMealPlan,
+    createShoppingItem, createShoppingItems, updateShoppingItem, deleteShoppingItem,
+    deleteCheckedShoppingItems, deleteAllShoppingItems,
     currentTab,
     language, t, getName
   ])

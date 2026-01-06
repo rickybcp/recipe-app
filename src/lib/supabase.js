@@ -400,3 +400,87 @@ export async function deleteMealPlan(mealPlanId) {
     .eq('id', mealPlanId)
   if (error) throw error
 }
+
+// ============================================
+// SHOPPING LIST
+// ============================================
+
+export async function getShoppingItems(userId) {
+    const { data, error } = await supabase
+      .from('shopping_items')
+      .select(`
+        *,
+        ingredient:ingredients(*)
+      `)
+      .eq('user_id', userId)
+      .order('checked', { ascending: true })
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true })
+    if (error) throw error
+    return data
+  }
+  
+  export async function createShoppingItem(userId, item) {
+    const { data, error } = await supabase
+      .from('shopping_items')
+      .insert({ user_id: userId, ...item })
+      .select(`
+        *,
+        ingredient:ingredients(*)
+      `)
+      .single()
+    if (error) throw error
+    return data
+  }
+  
+  export async function createShoppingItems(userId, items) {
+    const itemsWithUser = items.map(item => ({ user_id: userId, ...item }))
+    const { data, error } = await supabase
+      .from('shopping_items')
+      .insert(itemsWithUser)
+      .select(`
+        *,
+        ingredient:ingredients(*)
+      `)
+    if (error) throw error
+    return data
+  }
+  
+  export async function updateShoppingItem(itemId, updates) {
+    const { data, error } = await supabase
+      .from('shopping_items')
+      .update(updates)
+      .eq('id', itemId)
+      .select(`
+        *,
+        ingredient:ingredients(*)
+      `)
+      .single()
+    if (error) throw error
+    return data
+  }
+  
+  export async function deleteShoppingItem(itemId) {
+    const { error } = await supabase
+      .from('shopping_items')
+      .delete()
+      .eq('id', itemId)
+    if (error) throw error
+  }
+  
+  export async function deleteCheckedShoppingItems(userId) {
+    const { error } = await supabase
+      .from('shopping_items')
+      .delete()
+      .eq('user_id', userId)
+      .eq('checked', true)
+    if (error) throw error
+  }
+  
+  export async function deleteAllShoppingItems(userId) {
+    const { error } = await supabase
+      .from('shopping_items')
+      .delete()
+      .eq('user_id', userId)
+    if (error) throw error
+  }
