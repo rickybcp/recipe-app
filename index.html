@@ -2,51 +2,18 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#2D5A3D" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
+    
+    <!-- PWA -->
+    <meta name="theme-color" content="#2D5A47" />
+    <meta name="description" content="Gérez vos recettes et planifiez vos repas" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Recettes" />
+    
     <title>Mes Recettes</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-      html, body, #root {
-        height: 100%;
-        width: 100%;
-      }
-      body {
-        font-family: 'Nunito', sans-serif;
-        background-color: #FAF8F5;
-        color: #2D3748;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-      }
-      /* Prevent pull-to-refresh on mobile */
-      body {
-        overscroll-behavior-y: contain;
-      }
-      /* Loading state before React hydrates */
-      #root:empty::after {
-        content: '';
-        display: block;
-        width: 40px;
-        height: 40px;
-        margin: 40vh auto;
-        border: 3px solid #E8E4DE;
-        border-top-color: #2D5A3D;
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-      }
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-    </style>
   </head>
   <body>
     <div id="root"></div>
